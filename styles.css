@@ -1,0 +1,1316 @@
+/* ============================================================================
+ * IMAGE VIEWER ELECTRON - STYLESHEET
+ * ============================================================================
+ * This file contains all CSS styling for the image viewer application.
+ * 
+ * Theme: Dark gradient background with orange accent (#ff6b35)
+ * Layout: CSS Grid with 2-column layout (sidebar left, image viewer right)
+ * Typography: Segoe UI, Tahoma, Geneva, Verdana, sans-serif
+ * 
+ * Key Styling Sections:
+ * - Reset and base styles
+ * - Drag strip (custom title bar for frameless window)
+ * - Main container (grid layout)
+ * - Sidebar with controls
+ * - Image viewer area
+ * - Modals
+ * - Form elements
+ * ============================================================================ */
+
+/* ============================================================================
+ * RESET AND BASE STYLES
+ * ============================================================================ */
+
+/* Reset all margins and padding, set box-sizing to border-box */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ============================================================================
+ * FILE DIALOG OVERLAY
+ * ============================================================================ */
+
+.file-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-dialog-window {
+    width: 90%;
+    height: 90%;
+    max-width: 1200px;
+    max-height: 800px;
+    background: #252525;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.file-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #3a3a3a;
+    gap: 15px;
+}
+
+.file-dialog-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ff6b35;
+    flex-shrink: 0;
+}
+
+.file-dialog-header .view-controls,
+.file-dialog-header .size-controls,
+.file-dialog-header .size-control {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.file-dialog-header .size-control {
+    margin-left: 10px;
+}
+
+.file-dialog-header .size-label {
+    font-size: 12px;
+    color: #b0b0b0;
+}
+
+.file-dialog-header .size-slider {
+    width: 100px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #3a3a3a;
+    border-radius: 2px;
+    outline: none;
+}
+
+.file-dialog-header .size-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #ff6b35;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.file-dialog-header .size-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #ff6b35;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.file-dialog-header .size-value {
+    font-size: 12px;
+    color: #b0b0b0;
+    min-width: 40px;
+}
+
+.file-dialog-header .view-btn,
+.file-dialog-header .size-btn {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.file-dialog-header .view-btn:hover,
+.file-dialog-header .size-btn:hover {
+    background: #4a4a4a;
+}
+
+.file-dialog-header .view-btn.active,
+.file-dialog-header .size-btn.active {
+    background: #ff6b35;
+    border-color: #ff6b35;
+}
+
+.dialog-close-btn {
+    background: #ff5f57;
+    border: none;
+    color: transparent;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.dialog-close-btn:hover {
+    background: #ff3b30;
+    color: #000;
+}
+
+.set-default-folder-btn {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    margin-left: 8px;
+}
+
+.set-default-folder-btn:hover {
+    background: #4a4a4a;
+}
+
+.set-default-folder-btn svg {
+    pointer-events: none;
+}
+
+.file-dialog-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.file-dialog-body .path-bar {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #3a3a3a;
+    gap: 5px;
+}
+
+.file-dialog-body .breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    overflow-x: auto;
+}
+
+.file-dialog-body .breadcrumb {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: background 0.2s;
+    pointer-events: auto;
+    user-select: none;
+}
+
+.file-dialog-body .breadcrumb:hover {
+    background: #4a4a4a;
+}
+
+.file-dialog-body .breadcrumb-separator {
+    color: #666;
+    font-size: 12px;
+    pointer-events: none;
+    user-select: none;
+}
+
+.file-dialog-body .file-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+    min-height: 0;
+}
+
+/* Thumbnails View for overlay */
+.file-dialog-body .file-list.view-thumbnails {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(calc(var(--thumbnail-size, 48px) + 16px), 1fr));
+    gap: 8px;
+    padding: 12px;
+    background: #1a1a1a;
+}
+
+.file-dialog-body .file-list.view-thumbnails .file-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.file-dialog-body .file-list.view-thumbnails .file-item:hover {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.file-dialog-body .file-list.view-thumbnails .file-item.selected {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    box-shadow: 0 0 12px rgba(255, 107, 53, 0.5);
+}
+
+.file-dialog-body .file-list.view-thumbnails .file-thumbnail {
+    width: var(--thumbnail-size, 48px);
+    height: var(--thumbnail-size, 48px);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    background: #1a1a1a;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid #3a3a3a;
+}
+
+.file-dialog-body .file-list.view-thumbnails .file-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.file-dialog-body .file-list.view-thumbnails .file-thumbnail svg {
+    width: calc(var(--thumbnail-size, 48px) * 0.75);
+    height: calc(var(--thumbnail-size, 48px) * 0.75);
+}
+
+.file-dialog-body .file-list.view-thumbnails .file-name {
+    font-size: 11px;
+    text-align: center;
+    word-break: break-word;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    color: #e0e0e0;
+}
+
+/* List View for overlay */
+.file-dialog-body .file-list.view-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.file-dialog-body .file-list.view-list .file-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.file-dialog-body .file-list.view-list .file-item:hover {
+    background: #3a3a3a;
+}
+
+.file-dialog-body .file-list.view-list .file-item.selected {
+    background: #ff6b35;
+}
+
+.file-dialog-body .file-list.view-list .file-thumbnail {
+    width: var(--thumbnail-size, 24px);
+    height: var(--thumbnail-size, 24px);
+    object-fit: cover;
+    border-radius: 3px;
+    margin-right: 8px;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.file-dialog-body .file-list.view-list .file-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+.file-dialog-body .file-list.view-list .file-thumbnail svg {
+    width: calc(var(--thumbnail-size, 24px) * 0.75);
+    height: calc(var(--thumbnail-size, 24px) * 0.75);
+}
+
+.file-dialog-body .file-list.view-list .file-name {
+    flex: 1;
+    font-size: calc(10px + var(--thumbnail-size, 24px) * 0.1);
+}
+
+.file-dialog-body .file-list.view-list .file-size {
+    font-size: calc(9px + var(--thumbnail-size, 24px) * 0.1);
+    color: #b0b0b0;
+}
+
+/* Details View for overlay */
+.file-dialog-body .file-list.view-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.file-dialog-body .file-list.view-details .file-item {
+    display: grid;
+    grid-template-columns: 48px 1fr 200px 100px 150px;
+    align-items: center;
+    padding: 8px 12px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.file-dialog-body .file-list.view-details .file-item:hover {
+    background: #3a3a3a;
+}
+
+.file-dialog-body .file-list.view-details .file-item.selected {
+    background: #ff6b35;
+}
+
+.file-dialog-body .file-list.view-details .file-thumbnail {
+    width: var(--thumbnail-size, 24px);
+    height: var(--thumbnail-size, 24px);
+    object-fit: cover;
+    border-radius: 3px;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.file-dialog-body .file-list.view-details .file-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+.file-dialog-body .file-list.view-details .file-thumbnail svg {
+    width: calc(var(--thumbnail-size, 24px) * 0.75);
+    height: calc(var(--thumbnail-size, 24px) * 0.75);
+}
+
+.file-dialog-body .file-list.view-details .file-name {
+    font-size: calc(10px + var(--thumbnail-size, 24px) * 0.1);
+    padding-left: 12px;
+}
+
+.file-dialog-body .file-list.view-details .file-size {
+    font-size: calc(9px + var(--thumbnail-size, 24px) * 0.1);
+    color: #b0b0b0;
+}
+
+.file-dialog-body .file-list.view-details .file-type {
+    font-size: calc(9px + var(--thumbnail-size, 24px) * 0.1);
+    color: #b0b0b0;
+}
+
+.file-dialog-body .file-list.view-details .file-path {
+    font-size: calc(8px + var(--thumbnail-size, 24px) * 0.1);
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: #2a2a2a;
+    border-top: 1px solid #3a3a3a;
+}
+
+.file-dialog-footer .selection-info {
+    font-size: 13px;
+    color: #b0b0b0;
+}
+
+.file-dialog-footer .footer-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.file-dialog-footer .btn {
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.file-dialog-footer .btn-secondary {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+}
+
+.file-dialog-footer .btn-secondary:hover {
+    background: #4a4a4a;
+}
+
+.file-dialog-footer .btn-primary {
+    background: #ff6b35;
+    border: 1px solid #ff6b35;
+    color: #fff;
+}
+
+.file-dialog-footer .btn-primary:hover {
+    background: #ff7b45;
+}
+
+.file-dialog-footer .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* html - transparent base for rounded corners on frameless window */
+html {
+    border-radius: 14px;
+    overflow: hidden;
+    background: transparent;
+}
+
+/* Body styling - dark gradient background with rounded corners */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+    border: 1px solid #444;
+    box-shadow: 0 0 0 1px #222 inset;
+}
+
+/* ============================================================================
+ * DRAG STRIP - Custom Title Bar
+ * ============================================================================
+ * This thin strip at the top serves as the window title bar for the frameless window.
+ * Has -webkit-app-region: drag to allow window dragging.
+ * Contains window controls (minimize, maximize, close) on the right.
+ */
+
+/* Thin drag strip at the very top - also hosts window control buttons */
+.drag-strip {
+    height: 28px;
+    background: #1a1a1a;
+    -webkit-app-region: drag;  /* Allows window to be dragged by this area */
+    flex-shrink: 0;
+    border-radius: 14px 14px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 10px;
+}
+
+/* Window controls container - disable drag region for buttons to be clickable */
+.drag-strip .window-controls {
+    -webkit-app-region: no-drag;  /* Buttons must be clickable, not draggable */
+}
+
+/* ============================================================================
+ * WINDOW CONTROLS
+ * ============================================================================
+ * Custom window control buttons (minimize, maximize, close) for frameless window.
+ * macOS-style circular buttons with color coding (yellow, green, red).
+ */
+
+/* Window controls container - holds minimize, maximize, close buttons */
+.window-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: 4px;
+}
+
+/* Window control buttons - macOS-style circular buttons */
+.window-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: color 0.15s, opacity 0.15s;
+    padding: 0;
+    line-height: 1;
+}
+
+.window-btn:hover {
+    color: #000;
+}
+
+.window-btn.minimize-btn {
+    background: #ffbd2e;
+}
+
+.window-btn.maximize-btn {
+    background: #28c940;
+}
+
+.window-btn.close-btn {
+    background: #ff5f57;
+}
+
+/* ============================================================================
+ * MAIN CONTAINER
+ * ============================================================================
+ * Main application area with sidebar and image viewer.
+ */
+
+.main-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 0;
+    overflow: hidden;
+}
+
+/* ============================================================================
+ * SIDEBAR
+ * ============================================================================
+ * Left panel with tools and controls.
+ */
+
+.sidebar {
+    background: #252525;
+    border-right: 1px solid #3a3a3a;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 15px;
+    padding-bottom: 80px;
+    gap: 20px;
+    transition: width 0.3s ease, padding 0.3s ease;
+    width: 280px;
+}
+
+.sidebar.collapsed {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: none;
+}
+
+.sidebar.collapsed .sidebar-header,
+.sidebar.collapsed .actions,
+.sidebar.collapsed .transform-controls,
+.sidebar.collapsed .conversion-controls,
+.sidebar.collapsed .rename-controls {
+    display: none;
+}
+
+/* Floating collapse button */
+.floating-collapse-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    background: #ff6b35;
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.floating-collapse-btn:hover {
+    background: #ff7b45;
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.floating-collapse-btn:active {
+    transform: scale(0.95);
+}
+
+.floating-collapse-btn .collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.sidebar-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ff6b35;
+    margin-bottom: 5px;
+}
+
+/* Action buttons */
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.action-btn {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.action-btn:hover {
+    background: #4a4a4a;
+    border-color: #5a5a5a;
+}
+
+/* Default folder indicator */
+.default-folder-indicator {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #b0b0b0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.default-folder-indicator:hover {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+}
+
+.default-folder-indicator span:first-child {
+    font-weight: 600;
+    color: #ff6b35;
+}
+
+.default-folder-indicator #defaultFolderPath {
+    color: #e0e0e0;
+    word-break: break-all;
+    font-size: 10px;
+}
+
+.action-btn:active {
+    background: #2a2a2a;
+}
+
+/* Language selector */
+.language-selector {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.language-selector label {
+    display: block;
+    font-size: 12px;
+    color: #b0b0b0;
+    margin-bottom: 8px;
+}
+
+/* Help section */
+.help-section {
+    margin-bottom: 20px;
+}
+
+/* Help modal */
+.help-modal-content {
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.help-modal-body {
+    padding: 20px;
+}
+
+.help-modal-body h3 {
+    color: #ff6b35;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.help-modal-body h4 {
+    color: #e0e0e0;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.help-modal-body p {
+    color: #b0b0b0;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.help-modal-body ul {
+    list-style: none;
+    padding: 0;
+}
+
+.help-modal-body li {
+    color: #b0b0b0;
+    padding: 5px 0;
+    line-height: 1.4;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: #e0e0e0;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.modal-close-btn:hover {
+    background: #3a3a3a;
+}
+
+/* Transform controls */
+.transform-controls,
+.conversion-controls,
+.rename-controls {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.transform-controls h3,
+.conversion-controls h3,
+.rename-controls h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff6b35;
+    margin-bottom: 12px;
+}
+
+/* Section header */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff6b35;
+}
+
+.section-collapse-btn {
+    background: none;
+    border: none;
+    color: #e0e0e0;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s, transform 0.3s;
+}
+
+.section-collapse-btn:hover {
+    background: #3a3a3a;
+}
+
+.section-collapse-btn svg {
+    transition: transform 0.3s;
+}
+
+/* Collapsed section state */
+.transform-controls.collapsed .control-group,
+.conversion-controls.collapsed .control-group,
+.rename-controls.collapsed .control-group {
+    display: none;
+}
+
+.transform-controls.collapsed .section-collapse-btn svg,
+.conversion-controls.collapsed .section-collapse-btn svg,
+.rename-controls.collapsed .section-collapse-btn svg {
+    transform: rotate(-90deg);
+}
+
+/* Hide action buttons in collapsed sections */
+.conversion-controls.collapsed #convertBtn,
+.rename-controls.collapsed #renameCurrentBtn,
+.rename-controls.collapsed #renameAllBtn {
+    display: none;
+}
+
+.control-group {
+    margin-bottom: 15px;
+}
+
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
+.control-group label {
+    display: block;
+    font-size: 12px;
+    color: #b0b0b0;
+    margin-bottom: 6px;
+}
+
+/* Scale inputs */
+.scale-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.scale-inputs input {
+    flex: 1;
+}
+
+.scale-inputs span {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Rotate buttons */
+.rotate-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.rotate-btn {
+    flex: 1;
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.rotate-btn:hover {
+    background: #4a4a4a;
+}
+
+/* Transform buttons */
+.transform-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.transform-btn {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.transform-btn:hover {
+    background: #4a4a4a;
+}
+
+.transform-btn svg {
+    pointer-events: none;
+}
+
+.control-btn {
+    width: 100%;
+    background: #ff6b35;
+    border: none;
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+    margin-bottom: 8px;
+}
+
+.control-btn:hover {
+    background: #ff7b45;
+}
+
+.control-btn:last-child {
+    margin-bottom: 0;
+}
+
+/* Rename controls */
+.rename-controls {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.rename-controls h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff6b35;
+    margin-bottom: 12px;
+}
+
+/* Form elements */
+.form-input,
+.form-select {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #ff6b35;
+}
+
+.form-select {
+    cursor: pointer;
+}
+
+/* Path selector */
+.path-selector {
+    display: flex;
+    gap: 8px;
+}
+
+.path-selector input {
+    flex: 1;
+}
+
+.browse-btn {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.browse-btn:hover {
+    background: #4a4a4a;
+}
+
+/* ============================================================================
+ * IMAGE VIEWER
+ * ============================================================================
+ * Right panel with image display area.
+ */
+
+.image-viewer {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.image-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 20px;
+    position: relative;
+}
+
+.image-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.empty-state {
+    text-align: center;
+    color: #666;
+}
+
+.empty-state svg {
+    margin-bottom: 15px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+/* Image navigation */
+.image-navigation {
+    background: #252525;
+    border-top: 1px solid #3a3a3a;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.nav-btn {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.nav-btn:hover {
+    background: #4a4a4a;
+}
+
+.nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.image-counter {
+    font-size: 13px;
+    color: #b0b0b0;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Slideshow button */
+.slideshow-btn {
+    position: absolute;
+    bottom: 100px;
+    right: 50px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 107, 53, 0.6);
+    border: 2px solid #ffffff;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    transition: opacity 0.5s ease, background 0.2s, transform 0.2s;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+}
+
+.slideshow-btn:hover {
+    background: rgba(255, 107, 53, 1);
+    transform: scale(1.1);
+}
+
+.slideshow-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ============================================================================
+ * MODAL
+ * ============================================================================
+ * Modal dialogs for progress and other information.
+ */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+.modal-close:hover {
+    color: #e0e0e0;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body p {
+    font-size: 14px;
+    color: #b0b0b0;
+    text-align: center;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #3a3a3a;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    border: none;
+}
+
+.modal-btn.primary {
+    background: #ff6b35;
+    color: #fff;
+}
+
+.modal-btn.primary:hover {
+    background: #ff7b45;
+}
+
+.modal-btn.secondary {
+    background: #3a3a3a;
+    color: #e0e0e0;
+}
+
+.modal-btn.secondary:hover {
+    background: #4a4a4a;
+}
+
+/* ============================================================================
+ * SCROLLBAR
+ * ============================================================================
+ * Custom scrollbar styling for dark theme.
+ */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4a;
+}
