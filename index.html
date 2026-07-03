@@ -302,20 +302,14 @@
             <div class="file-dialog-header">
                 <h2 data-i18n="selectImages">Seleccionar Imágenes</h2>
                 <div class="view-controls">
-                    <button class="view-btn" data-view="thumbnails" title="Miniaturas">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>
-                    </button>
                     <button class="view-btn active" data-view="list" title="Lista">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-                    </button>
-                    <button class="view-btn" data-view="details" title="Detalle">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
                     </button>
                 </div>
                 <div class="size-control">
                     <span class="size-label" data-i18n="size">Tamaño:</span>
-                    <input type="range" id="thumbnailSizeSlider" min="16" max="64" value="24" class="size-slider">
-                    <span class="size-value" id="thumbnailSizeValue">24px</span>
+                    <input type="range" id="thumbnailSizeSlider" min="16" max="350" value="16" class="size-slider">
+                    <span class="size-value" id="thumbnailSizeValue">16px</span>
                 </div>
                 <button class="set-default-folder-btn" id="setDefaultFolderBtn" title="Establecer carpeta actual como predeterminada">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fullscreen Image</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+        }
+        body.panning {
+            cursor: grabbing;
+        }
+        #fullscreenImage {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.1s ease;
+        }
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 95, 87, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        .close-btn:hover {
+            background: rgba(255, 95, 87, 1);
+        }
+        .close-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .close-hint:hover {
+            opacity: 1;
+        }
+        .controls-hint {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <button class="close-btn" id="closeBtn">&times;</button>
+    <div class="controls-hint" id="controlsHint">Scroll: Zoom | Middle Click+Drag: Pan</div>
+    <img id="fullscreenImage" src="" alt="Fullscreen Image">
+    <div class="close-hint">Presiona ESC para cerrar</div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        const img = document.getElementById('fullscreenImage');
+        const closeBtn = document.getElementById('closeBtn');
+        const controlsHint = document.getElementById('controlsHint');
+
+        let zoomLevel = 1;
+        let isPanning = false;
+        let startX, startY, translateX = 0, translateY = 0;
+
+        // Load image when path is received
+        ipcRenderer.on('load-image', (event, imagePath) => {
+            img.src = `file://${imagePath}`;
+        });
+
+        // Close button
+        closeBtn.addEventListener('click', () => {
+            window.close();
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                window.close();
+            }
+        });
+
+        // Close on double click
+        document.addEventListener('dblclick', () => {
+            window.close();
+        });
+
+        // Zoom with scroll
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            zoomLevel = Math.max(0.1, Math.min(5, zoomLevel + delta));
+            updateTransform();
+        }, { passive: false });
+
+        // Pan with middle click (scroll button)
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { // Middle click (scroll button)
+                e.preventDefault();
+                isPanning = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                document.body.classList.add('panning');
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isPanning = false;
+            document.body.classList.remove('panning');
+        });
+
+        function updateTransform() {
+            img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+        }
+
+        // Show controls on mouse move
+        document.addEventListener('mousemove', () => {
+            closeBtn.style.opacity = '1';
+            controlsHint.style.opacity = '1';
+            setTimeout(() => {
+                closeBtn.style.opacity = '0';
+                controlsHint.style.opacity = '0';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

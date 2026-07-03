@@ -292,7 +292,7 @@ document.addEventListener('keydown', (e) => {
 // File dialog state
 let fileDialogPath = '';
 let fileDialogView = 'list';
-let fileDialogThumbnailSize = 24;
+let fileDialogThumbnailSize = 16;
 let fileDialogSelectedFiles = new Set();
 let fileDialogAllFiles = [];
 let defaultImagePath = '';
@@ -312,16 +312,16 @@ async function initFileDialog() {
         const homePath = await ipcRenderer.invoke('get-home-path');
         fileDialogPath = homePath;
     }
-    
+
     // Initialize slider with saved value
     const slider = document.getElementById('thumbnailSizeSlider');
     slider.value = fileDialogThumbnailSize;
     document.getElementById('thumbnailSizeValue').textContent = `${fileDialogThumbnailSize}px`;
-    
+
     // Set initial CSS variable
     const fileList = document.getElementById('fileDialogList');
     fileList.style.setProperty('--thumbnail-size', `${fileDialogThumbnailSize}px`);
-    
+
     // Load files
     await loadDialogFiles();
     
@@ -338,14 +338,14 @@ function setupFileDialogListeners() {
             setFileDialogView(view);
         });
     });
-    
+
     // Size slider
     const sizeSlider = document.getElementById('thumbnailSizeSlider');
     sizeSlider.addEventListener('input', (e) => {
         const size = parseInt(e.target.value);
         setThumbnailSize(size);
     });
-    
+
     // Close button
     document.getElementById('closeFileDialogBtn').addEventListener('click', () => {
         closeFileDialog();
@@ -416,17 +416,17 @@ function setFileDialogView(view) {
 // Set thumbnail size dynamically
 function setThumbnailSize(size) {
     fileDialogThumbnailSize = size;
-    
+
     // Update CSS variable
     const fileList = document.getElementById('fileDialogList');
     fileList.style.setProperty('--thumbnail-size', `${size}px`);
-    
+
     // Update display value
     document.getElementById('thumbnailSizeValue').textContent = `${size}px`;
-    
+
     // Re-render files to update SVG sizes
     renderDialogFiles();
-    
+
     // Save settings
     saveSettings();
 }
@@ -480,17 +480,21 @@ function createDialogFileItem(file) {
     // Thumbnail
     const thumbnail = document.createElement('div');
     thumbnail.className = 'file-thumbnail';
-    
+
     if (file.isDirectory) {
         const svgSize = Math.round(fileDialogThumbnailSize * 0.75);
         thumbnail.innerHTML = `<svg viewBox="0 0 24 24" width="${svgSize}" height="${svgSize}" fill="#ff6b35"><path d="M10 4H2c-1.1 0-1.9.9-1.9 2L2 20c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
     } else {
         const img = document.createElement('img');
         img.src = `file://${file.path}`;
-        img.style.width = '100%';
-        img.style.height = '100%';
+        img.style.width = `${fileDialogThumbnailSize}px`;
+        img.style.height = `${fileDialogThumbnailSize}px`;
         img.style.objectFit = 'cover';
         img.style.borderRadius = '3px';
+        img.style.maxWidth = '350px';
+        img.style.maxHeight = '350px';
+        img.style.minWidth = '16px';
+        img.style.minHeight = '16px';
         img.onerror = () => {
             img.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzY2NiI+PHBhdGggZD0iTTIxIDE5VjVjMC0xLjEtLjktMi0yLTJINWMtMS4xIDAtMiAuOS0yIDJ2MTRjMCAxLjEuOSAyIDIgMmgxNGMxLjEgMCAyLS45IDItMnptLTguNS02LjVsMi41IDMuMDFMMTQuNSAxMmw0LjUgNkg1bDMuNS00LjV6Ii8+PC9zdmc+';
         };
@@ -501,32 +505,47 @@ function createDialogFileItem(file) {
     const name = document.createElement('div');
     name.className = 'file-name';
     name.textContent = file.name;
-    
+
     item.appendChild(thumbnail);
-    item.appendChild(name);
-    
+
     // Add size and type for details view
     if (fileDialogView === 'details') {
+        const info = document.createElement('div');
+        info.className = 'file-info';
+
         const path = document.createElement('div');
         path.className = 'file-path';
         path.textContent = file.path;
-        
+
         const size = document.createElement('div');
         size.className = 'file-size';
         size.textContent = file.isDirectory ? '' : formatDialogFileSize(file.size);
-        
+
         const type = document.createElement('div');
         type.className = 'file-type';
         type.textContent = file.isDirectory ? 'Carpeta' : getDialogFileType(file.name);
-        
-        item.appendChild(path);
-        item.appendChild(size);
-        item.appendChild(type);
+
+        info.appendChild(path);
+        info.appendChild(size);
+        info.appendChild(type);
+        item.appendChild(info);
     } else if (fileDialogView === 'list') {
+        const info = document.createElement('div');
+        info.className = 'file-info';
+
+        info.appendChild(name);
+
+        const path = document.createElement('div');
+        path.className = 'file-path';
+        path.textContent = file.path;
+
         const size = document.createElement('div');
         size.className = 'file-size';
         size.textContent = file.isDirectory ? '' : formatDialogFileSize(file.size);
-        item.appendChild(size);
+
+        info.appendChild(path);
+        info.appendChild(size);
+        item.appendChild(info);
     }
     
     // Click handler
