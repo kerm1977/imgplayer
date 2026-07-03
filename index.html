@@ -58,7 +58,10 @@
 
             <!-- Language selector -->
             <div class="language-selector">
-                <label data-i18n="languageLabel">🌐 Idioma:</label>
+                <label data-i18n="languageLabel">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="language-icon"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
+                    <span data-i18n="languageLabel">Idioma:</span>
+                </label>
                 <select id="languageSelect" class="form-select">
                     <option value="es">Español</option>
                     <option value="en">English</option>
@@ -74,9 +77,9 @@
 
             <!-- Image transformation controls -->
             <div class="transform-controls collapsed" id="transformControls">
-                <div class="section-header">
-                    <h3 data-i18n="transform">Transformar</h3>
-                    <button class="section-collapse-btn" data-target="transformControls">
+                <div class="section-header" data-target="transformControls" style="cursor: pointer;" onclick="window.toggleSection('transformControls')">
+                    <h3 data-i18n="transform" style="cursor: pointer;">Transformar</h3>
+                    <button class="section-collapse-btn" data-target="transformControls" onclick="event.stopPropagation(); window.toggleSection('transformControls')">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                     </button>
                 </div>
@@ -129,9 +132,9 @@
 
             <!-- Conversion controls -->
             <div class="conversion-controls collapsed" id="conversionControls">
-                <div class="section-header">
-                    <h3 data-i18n="convert">Convertir</h3>
-                    <button class="section-collapse-btn" data-target="conversionControls">
+                <div class="section-header" data-target="conversionControls" style="cursor: pointer;" onclick="window.toggleSection('conversionControls')">
+                    <h3 data-i18n="convert" style="cursor: pointer;">Convertir</h3>
+                    <button class="section-collapse-btn" data-target="conversionControls" onclick="event.stopPropagation(); window.toggleSection('conversionControls')">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                     </button>
                 </div>
@@ -177,13 +180,13 @@
 
             <!-- Rename controls -->
             <div class="rename-controls collapsed" id="renameControls">
-                <div class="section-header">
-                    <h3 data-i18n="rename">Renombrar</h3>
-                    <button class="section-collapse-btn" data-target="renameControls">
+                <div class="section-header" data-target="renameControls" style="cursor: pointer;" onclick="window.toggleSection('renameControls')">
+                    <h3 data-i18n="rename" style="cursor: pointer;">Renombrar</h3>
+                    <button class="section-collapse-btn" data-target="renameControls" onclick="event.stopPropagation(); window.toggleSection('renameControls')">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                     </button>
                 </div>
-                
+
                 <div class="control-group">
                     <label for="newFileName" data-i18n="newName">Nuevo nombre:</label>
                     <input type="text" id="newFileName" class="form-input" placeholder="nombre_archivo">
@@ -191,6 +194,49 @@
 
                 <button class="control-btn" id="renameCurrentBtn" data-i18n="renameCurrent">Renombrar Actual</button>
                 <button class="control-btn" id="renameAllBtn" style="background:#ff6b35;" data-i18n="renameAll">Renombrar Todos</button>
+            </div>
+
+            <!-- Compressor controls -->
+            <div class="compressor-controls collapsed" id="compressorControls">
+                <div class="section-header" data-target="compressorControls" style="cursor: pointer;" onclick="window.toggleSection('compressorControls')">
+                    <h3 data-i18n="compressor" style="cursor: pointer;" onclick="event.stopPropagation(); window.toggleSection('compressorControls')">Compresor</h3>
+                    <button class="section-collapse-btn" data-target="compressorControls" onclick="event.stopPropagation(); window.toggleSection('compressorControls')">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <label for="compressFormat" data-i18n="compressFormat">Formato:</label>
+                    <select id="compressFormat" class="form-select">
+                        <option value="zip">ZIP</option>
+                        <option value="tar">TAR</option>
+                        <option value="7z">7Z</option>
+                        <option value="rar">RAR</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="compressFileName" data-i18n="compressFileName">Nombre del archivo:</label>
+                    <input type="text" id="compressFileName" class="form-input" placeholder="archivo_comprimido">
+                </div>
+
+                <div class="control-group">
+                    <label for="compressPassword" data-i18n="compressPassword">Contraseña (opcional):</label>
+                    <input type="password" id="compressPassword" class="form-input" placeholder="Contraseña">
+                </div>
+
+                <div class="control-group">
+                    <label for="compressPasswordConfirm" data-i18n="compressPasswordConfirm">Confirmar contraseña:</label>
+                    <input type="password" id="compressPasswordConfirm" class="form-input" placeholder="Confirmar contraseña">
+                </div>
+
+                <button class="control-btn" id="openFileSelectorBtn" data-i18n="selectFiles">Seleccionar Archivos</button>
+                <button class="control-btn" id="compressBtn" style="background:#ff6b35;" data-i18n="compress">Comprimir</button>
+
+                <div class="selected-files-container" id="selectedFilesContainer" style="display:none;">
+                    <label data-i18n="selectedFiles">Archivos seleccionados:</label>
+                    <div class="selected-files-list" id="selectedFilesList"></div>
+                </div>
             </div>
 
             <!-- Help button -->
@@ -223,7 +269,7 @@
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
                 </button>
                 <span class="image-counter" id="imageCounter">1 / 1</span>
-                <button class="nav-btn" id="nextImageBtn">
+                <button class="nav-btn" id="nextImageBtn" data-toggle-sidebar="true">
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
                 </button>
             </div>

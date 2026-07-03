@@ -16,6 +16,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, screen } = require('electron'
 const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
+const AdmZip = require('adm-zip');
 
 // Settings file path
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -180,6 +181,20 @@ ipcMain.handle('rename-file', async (event, oldPath, newPath) => {
         return { success: true };
     } catch (error) {
         console.error('Error renaming file:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// IPC handler for deleting a file
+// Parameters:
+//   - filePath: Path to the file to delete
+// Returns: Success status
+ipcMain.handle('delete-file', async (event, filePath) => {
+    try {
+        fs.unlinkSync(filePath);
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting file:', error);
         return { success: false, error: error.message };
     }
 });
@@ -381,7 +396,7 @@ ipcMain.on('toggle-devtools', () => {
 let fullscreenWindow = null;
 
 // IPC handler for opening image in fullscreen window
-ipcMain.on('open-fullscreen', (event, imagePath) => {
+ipcMain.on('open-fullscreen', (event, imagePath, imagesList, currentIndex) => {
     if (fullscreenWindow) {
         fullscreenWindow.close();
     }
@@ -400,10 +415,14 @@ ipcMain.on('open-fullscreen', (event, imagePath) => {
     });
 
     fullscreenWindow.loadFile('fullscreen.html');
-    
-    // Send image path when window is ready
+
+    // Send image path and images info when window is ready
     fullscreenWindow.webContents.on('did-finish-load', () => {
         fullscreenWindow.webContents.send('load-image', imagePath);
+        fullscreenWindow.webContents.send('images-info', {
+            images: imagesList,
+            currentIndex: currentIndex
+        });
     });
 
     fullscreenWindow.on('closed', () => {
@@ -474,4 +493,98 @@ ipcMain.on('close-file-dialog', (event, data) => {
         fileDialogWindow.close();
     }
     mainWindow.webContents.send('file-dialog-selection', data.selected);
+});
+
+// ============================================================================
+// COMPRESSION
+// ============================================================================
+
+// IPC handler for selecting files for compression
+ipcMain.handle('select-files-for-compression', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile', 'multiSelections'],
+        filters: [
+            { name: 'All Files', extensions: ['*'] }
+        ]
+    });
+
+    if (!result.canceled) {
+        return result.filePaths;
+    }
+    return [];
+});
+
+// IPC handler for compressing files
+ipcMain.handle('compress-files', async (event, files, format, fileName, password) => {
+    try {
+        // RAR is proprietary format, cannot be created without external tools
+        if (format === 'rar') {
+            return { success: false, error: 'RAR es un formato propietario. Use ZIP, TAR o 7Z para compresión.' };
+        }
+
+        // Select save location
+        const saveResult = await dialog.showSaveDialog(mainWindow, {
+            defaultPath: `${fileName}.zip`,
+            filters: [
+                { name: 'ZIP', extensions: ['zip'] },
+                { name: 'All Files', extensions: ['*'] }
+            ]
+        });
+
+        if (saveResult.canceled) {
+            return { success: false, error: 'Cancelado por usuario' };
+        }
+
+        const outputPath = saveResult.filePath;
+
+        // Create zip archive
+        const zip = new AdmZip();
+
+        // Add files to archive
+        for (const filePath of files) {
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (stats.isDirectory()) {
+                    zip.addLocalFolder(filePath, path.basename(filePath));
+                } else {
+                    zip.addLocalFile(filePath);
+                }
+            }
+        }
+
+        // Write archive
+        zip.writeZip(outputPath);
+
+        return { success: true, outputPath };
+    } catch (error) {
+        console.error('Compression error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// IPC handler for decompressing files
+ipcMain.handle('decompress-file', async (event, archivePath, password) => {
+    try {
+        // Select destination directory
+        const dirResult = await dialog.showOpenDialog(mainWindow, {
+            properties: ['openDirectory']
+        });
+
+        if (dirResult.canceled) {
+            return { success: false, error: 'Cancelado por usuario' };
+        }
+
+        const destDir = dirResult.filePaths[0];
+
+        // Read zip archive
+        const zip = new AdmZip(archivePath);
+
+        // Extract all files
+        zip.extractAllTo(destDir, true);
+
+        return { success: true, outputPath: destDir };
+    } catch (error) {
+        console.error('Decompression error:', error);
+        return { success: false, error: error.message };
+    }
 });

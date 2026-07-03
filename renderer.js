@@ -123,8 +123,20 @@ collapseBtn.addEventListener('click', () => {
 
 // Toggle section collapse
 document.querySelectorAll('.section-collapse-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const targetId = btn.dataset.target;
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+            targetSection.classList.toggle('collapsed');
+        }
+    });
+});
+
+// Toggle section collapse on header click
+document.querySelectorAll('.section-header').forEach(header => {
+    header.addEventListener('click', () => {
+        const targetId = header.querySelector('.section-collapse-btn').dataset.target;
         const targetSection = document.getElementById(targetId);
         if (targetSection) {
             targetSection.classList.toggle('collapsed');
@@ -292,7 +304,7 @@ document.addEventListener('keydown', (e) => {
 // File dialog state
 let fileDialogPath = '';
 let fileDialogView = 'list';
-let fileDialogThumbnailSize = 16;
+let fileDialogThumbnailSize = 50;
 let fileDialogSelectedFiles = new Set();
 let fileDialogAllFiles = [];
 let defaultImagePath = '';
@@ -363,12 +375,19 @@ function setupFileDialogListeners() {
         closeFileDialog();
     });
     
-    // Double click to open folder
+    // Double click to open folder or image
     document.getElementById('fileDialogList').addEventListener('dblclick', async (e) => {
         const fileItem = e.target.closest('.file-item');
-        if (fileItem && fileItem.dataset.isDirectory === 'true') {
+        if (fileItem) {
             const path = fileItem.dataset.path;
-            await navigateToPath(path);
+            if (fileItem.dataset.isDirectory === 'true') {
+                // Open folder
+                await navigateToPath(path);
+            } else {
+                // Open image directly
+                loadSelectedImages([path]);
+                closeFileDialog();
+            }
         }
     });
     
@@ -826,7 +845,16 @@ prevImageBtn.addEventListener('click', () => {
 });
 
 // Next image
-nextImageBtn.addEventListener('click', () => {
+nextImageBtn.addEventListener('click', (e) => {
+    // Check if this is a sidebar toggle click
+    if (e.target.closest('#nextImageBtn').dataset.toggleSidebar === 'true') {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('collapsed');
+        }
+    }
+
+    // Navigate to next image
     if (currentImageIndex < images.length - 1) {
         displayImage(currentImageIndex + 1);
     }
@@ -834,6 +862,13 @@ nextImageBtn.addEventListener('click', () => {
 
 // Keyboard navigation
 document.addEventListener('keydown', (e) => {
+    // Delete/Suprimir to delete current image
+    if ((e.key === 'Delete' || e.key === 'Suprimir') && currentImagePath) {
+        e.preventDefault();
+        confirmDeleteImage(currentImagePath);
+        return;
+    }
+
     // Spacebar to control slideshow in fullscreen, otherwise reset image to 100%
     if (e.key === ' ' && currentImagePath) {
         e.preventDefault();
@@ -844,20 +879,20 @@ document.addEventListener('keydown', (e) => {
         }
         return;
     }
-    
+
     // Double click to enter fullscreen
     if (e.key === 'Enter' && currentImagePath) {
         e.preventDefault();
         toggleFullscreen();
         return;
     }
-    
+
     // ESC to exit fullscreen
     if (e.key === 'Escape') {
         exitFullscreen();
         return;
     }
-    
+
     // Image navigation with Alt key
     if (e.altKey) {
         if (e.key === 'ArrowLeft' && currentImageIndex > 0) {
@@ -1142,16 +1177,34 @@ document.getElementById('resetTransformBtn').addEventListener('click', resetTran
 // Handle mouse wheel zoom on image container
 imageContainer.addEventListener('wheel', (e) => {
     if (!currentImagePath) return;
-    
+
     const img = document.getElementById('currentImage');
     if (!img) return;
-    
+
     e.preventDefault();
-    
+
+    // Store previous zoom level
+    const previousZoom = zoomLevel;
+
     // Zoom in/out based on scroll direction
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     zoomLevel = Math.max(0.1, Math.min(5, zoomLevel + delta));
-    
+
+    // Calculate zoom ratio
+    const zoomRatio = zoomLevel / previousZoom;
+
+    // Get natural image dimensions (constant)
+    const naturalImageWidth = img.naturalWidth;
+    const naturalImageHeight = img.naturalHeight;
+
+    // Get current displayed image dimensions
+    const imageRect = img.getBoundingClientRect();
+    const currentImageWidth = imageRect.width;
+    const currentImageHeight = imageRect.height;
+
+    // Calculate current scale factor
+    const currentScale = currentImageWidth / naturalImageWidth;
+
     // Apply zoom with transform
     updateImageTransform();
 }, { passive: false });
@@ -1195,7 +1248,7 @@ function updateImageTransform() {
 // Open image in fullscreen on double click
 imageContainer.addEventListener('dblclick', () => {
     if (currentImagePath) {
-        ipcRenderer.send('open-fullscreen', currentImagePath);
+        ipcRenderer.send('open-fullscreen', currentImagePath, images, currentImageIndex);
     }
 });
 
@@ -1407,5 +1460,480 @@ renameAllBtn.addEventListener('click', async () => {
         alert(`${result.total} ${translations[currentLanguage].filesRenamed}`);
     } else {
         alert(`${translations[currentLanguage].renameErrors}: ${result.failed}\n${result.errors.map(e => e.error).join('\n')}`);
+    }
+});
+
+// ============================================================================
+// UNDO/REDO SYSTEM
+// ============================================================================
+
+const MAX_HISTORY = 500;
+let historyStack = [];
+let redoStack = [];
+
+// Save current state to history
+function saveState() {
+    const state = {
+        stickers: stickers.map(s => ({
+            id: s.id,
+            name: s.name,
+            src: s.src,
+            left: s.element.style.left,
+            top: s.element.style.top,
+            width: s.element.style.width,
+            height: s.element.style.height,
+            transform: s.element.style.transform,
+            zIndex: s.element.style.zIndex,
+            rotation: s.element.dataset.rotation || 0
+        })),
+        currentImageIndex: currentImageIndex,
+        images: [...images]
+    };
+
+    historyStack.push(JSON.stringify(state));
+    if (historyStack.length > MAX_HISTORY) {
+        historyStack.shift();
+    }
+
+    // Clear redo stack on new action
+    redoStack = [];
+}
+
+// Restore state from history
+function restoreState(stateStr) {
+    const state = JSON.parse(stateStr);
+
+    // Clear current stickers
+    stickers.forEach(s => s.element.remove());
+    stickers = [];
+
+    // Restore stickers
+    state.stickers.forEach(s => {
+        const imageContainer = document.getElementById('imageContainer');
+        if (!imageContainer) return;
+
+        const stickerContainer = document.createElement('div');
+        stickerContainer.className = 'sticker-container';
+        stickerContainer.id = s.id;
+        stickerContainer.style.left = s.left;
+        stickerContainer.style.top = s.top;
+        stickerContainer.style.width = s.width;
+        stickerContainer.style.height = s.height;
+        stickerContainer.style.transform = s.transform;
+        stickerContainer.style.zIndex = s.zIndex;
+        stickerContainer.dataset.name = s.name;
+        stickerContainer.dataset.rotation = s.rotation;
+
+        const stickerImage = document.createElement('img');
+        stickerImage.className = 'sticker-image';
+        stickerImage.src = s.src;
+        stickerImage.style.width = '100%';
+        stickerImage.style.height = '100%';
+        stickerImage.style.objectFit = 'contain';
+
+        // Delete button
+        const deleteBtn = document.createElement('div');
+        deleteBtn.className = 'sticker-delete';
+        deleteBtn.textContent = '×';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteSticker(s.id);
+        });
+
+        // Resize handles
+        const handles = ['resize-se', 'resize-ne', 'resize-sw', 'resize-nw'];
+        handles.forEach(handleClass => {
+            const handle = document.createElement('div');
+            handle.className = `sticker-handle ${handleClass}`;
+            handle.dataset.handle = handleClass;
+            stickerContainer.appendChild(handle);
+        });
+
+        // Rotate handle
+        const rotateHandle = document.createElement('div');
+        rotateHandle.className = 'sticker-handle rotate';
+        rotateHandle.dataset.handle = 'rotate';
+        stickerContainer.appendChild(rotateHandle);
+
+        stickerContainer.appendChild(deleteBtn);
+        stickerContainer.appendChild(stickerImage);
+        imageContainer.appendChild(stickerContainer);
+
+        stickers.push({
+            id: s.id,
+            element: stickerContainer,
+            name: s.name,
+            src: s.src
+        });
+
+        setupStickerEvents(stickerContainer);
+    });
+
+    // Restore images
+    images = state.images;
+    currentImageIndex = state.currentImageIndex;
+    currentImagePath = images[currentImageIndex];
+
+    // Update UI
+    updateLayersList();
+    displayImage(currentImageIndex, true);
+}
+
+// Undo
+function undo() {
+    if (historyStack.length === 0) return;
+
+    // Save current state to redo stack
+    const currentState = {
+        stickers: stickers.map(s => ({
+            id: s.id,
+            name: s.name,
+            src: s.src,
+            left: s.element.style.left,
+            top: s.element.style.top,
+            width: s.element.style.width,
+            height: s.element.style.height,
+            transform: s.element.style.transform,
+            zIndex: s.element.style.zIndex,
+            rotation: s.element.dataset.rotation || 0
+        })),
+        currentImageIndex: currentImageIndex,
+        images: [...images]
+    };
+    redoStack.push(JSON.stringify(currentState));
+
+    // Restore previous state
+    const previousState = historyStack.pop();
+    restoreState(previousState);
+}
+
+// Redo
+function redo() {
+    if (redoStack.length === 0) return;
+
+    // Save current state to history
+    const currentState = {
+        stickers: stickers.map(s => ({
+            id: s.id,
+            name: s.name,
+            src: s.src,
+            left: s.element.style.left,
+            top: s.element.style.top,
+            width: s.element.style.width,
+            height: s.element.style.height,
+            transform: s.element.style.transform,
+            zIndex: s.element.style.zIndex,
+            rotation: s.element.dataset.rotation || 0
+        })),
+        currentImageIndex: currentImageIndex,
+        images: [...images]
+    };
+    historyStack.push(JSON.stringify(currentState));
+
+    // Restore next state
+    const nextState = redoStack.pop();
+    restoreState(nextState);
+}
+
+// Keyboard shortcuts for undo/redo
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+    } else if (e.ctrlKey && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        redo();
+    }
+});
+
+// ============================================================================
+// STICKERS / OVERLAY IMAGES - REMOVED
+// ============================================================================
+
+// ============================================================================
+// DELETE IMAGE
+// ============================================================================
+
+// Confirm delete image
+function confirmDeleteImage(imagePath) {
+    const fileName = path.basename(imagePath);
+    const confirmed = confirm(`¿Estás seguro de que deseas eliminar "${fileName}"?\n\nEsta acción no se puede deshacer.`);
+
+    if (confirmed) {
+        deleteImage(imagePath);
+    }
+}
+
+// Delete image
+async function deleteImage(imagePath) {
+    try {
+        const result = await ipcRenderer.invoke('delete-file', imagePath);
+        if (result.success) {
+            // Remove from images array
+            const index = images.indexOf(imagePath);
+            if (index > -1) {
+                images.splice(index, 1);
+            }
+
+            // Display next or previous image
+            if (images.length > 0) {
+                const newIndex = Math.min(index, images.length - 1);
+                displayImage(newIndex);
+            } else {
+                // No more images
+                currentImagePath = null;
+                currentImageIndex = 0;
+                const img = document.getElementById('currentImage');
+                if (img) {
+                    img.src = '';
+                }
+            }
+        } else {
+            alert(`Error al eliminar imagen: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`Error al eliminar imagen: ${error.message}`);
+    }
+}
+
+// ============================================================================
+// CONTEXT MENU
+// ============================================================================
+
+// Context menu for right-click on image
+imageContainer.addEventListener('contextmenu', (e) => {
+    if (currentImagePath) {
+        e.preventDefault();
+        showContextMenu(e.clientX, e.clientY);
+    }
+});
+
+// Show context menu
+function showContextMenu(x, y) {
+    // Remove existing context menu
+    const existingMenu = document.getElementById('contextMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    // Create context menu
+    const menu = document.createElement('div');
+    menu.id = 'contextMenu';
+    menu.className = 'context-menu';
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+
+    const deleteItem = document.createElement('div');
+    deleteItem.className = 'context-menu-item';
+    deleteItem.innerHTML = `
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+        <span>Eliminar</span>
+    `;
+    deleteItem.addEventListener('click', () => {
+        confirmDeleteImage(currentImagePath);
+        menu.remove();
+    });
+
+    menu.appendChild(deleteItem);
+
+    // Add decompress option if file is an archive
+    const ext = path.extname(currentImagePath).toLowerCase();
+    if (['.zip', '.tar', '.7z', '.rar'].includes(ext)) {
+        const decompressItem = document.createElement('div');
+        decompressItem.className = 'context-menu-item';
+        decompressItem.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 10H6v-2h8v2zm4-4H6v-2h12v2z"/></svg>
+            <span>Descomprimir</span>
+        `;
+        decompressItem.addEventListener('click', () => {
+            decompressFile(currentImagePath);
+            menu.remove();
+        });
+        menu.appendChild(decompressItem);
+    }
+
+    document.body.appendChild(menu);
+
+    // Close menu on click outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 0);
+}
+
+// Decompress file
+async function decompressFile(archivePath) {
+    const password = prompt('Ingresa la contraseña (si el archivo está protegido):');
+
+    const result = await ipcRenderer.invoke('decompress-file', archivePath, password || '');
+
+    if (result.success) {
+        alert(`Archivo descomprimido exitosamente en: ${result.outputPath}`);
+    } else {
+        alert(`Error al descomprimir: ${result.error}`);
+    }
+}
+
+// ============================================================================
+// COMPRESSOR
+// ============================================================================
+
+let selectedFilesForCompression = [];
+
+// Open file selector for compression
+document.getElementById('openFileSelectorBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const files = await ipcRenderer.invoke('select-files-for-compression');
+    if (files.length > 0) {
+        selectedFilesForCompression = [...selectedFilesForCompression, ...files];
+        updateSelectedFilesList();
+    }
+});
+
+// Update selected files list
+function updateSelectedFilesList() {
+    const container = document.getElementById('selectedFilesContainer');
+    const list = document.getElementById('selectedFilesList');
+
+    if (selectedFilesForCompression.length > 0) {
+        container.style.display = 'block';
+        list.innerHTML = '';
+
+        selectedFilesForCompression.forEach((filePath, index) => {
+            const item = document.createElement('div');
+            item.className = 'selected-file-item';
+
+            const fileName = document.createElement('span');
+            fileName.className = 'file-name';
+            fileName.textContent = path.basename(filePath);
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'file-actions';
+
+            // Check if file is an archive
+            const ext = path.extname(filePath).toLowerCase();
+            const isArchive = ['.zip', '.tar', '.7z', '.rar'].includes(ext);
+
+            if (isArchive) {
+                const decompressBtn = document.createElement('button');
+                decompressBtn.className = 'decompress-file';
+                decompressBtn.textContent = 'Descomprimir';
+                decompressBtn.addEventListener('click', () => {
+                    decompressFileFromList(filePath);
+                });
+                actionsDiv.appendChild(decompressBtn);
+            }
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-file';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                selectedFilesForCompression.splice(index, 1);
+                updateSelectedFilesList();
+            });
+
+            actionsDiv.appendChild(removeBtn);
+            item.appendChild(fileName);
+            item.appendChild(actionsDiv);
+            list.appendChild(item);
+        });
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+// Decompress file from list
+async function decompressFileFromList(archivePath) {
+    const result = await ipcRenderer.invoke('decompress-file', archivePath, '');
+
+    if (result.success) {
+        alert(`Archivo descomprimido exitosamente en: ${result.outputPath}`);
+    } else {
+        alert(`Error al descomprimir: ${result.error}`);
+    }
+}
+
+// Compress files
+document.getElementById('compressBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (selectedFilesForCompression.length === 0) {
+        alert('Por favor selecciona archivos para comprimir');
+        return;
+    }
+
+    const format = document.getElementById('compressFormat').value;
+    const fileName = document.getElementById('compressFileName').value.trim();
+    const password = document.getElementById('compressPassword').value;
+    const passwordConfirm = document.getElementById('compressPasswordConfirm').value;
+
+    if (!fileName) {
+        alert('Por favor ingresa un nombre para el archivo comprimido');
+        return;
+    }
+
+    if (password && password !== passwordConfirm) {
+        alert('Las contraseñas no coinciden');
+        return;
+    }
+
+    const result = await ipcRenderer.invoke('compress-files', selectedFilesForCompression, format, fileName, password);
+
+    if (result.success) {
+        alert(`Archivo comprimido exitosamente: ${result.outputPath}`);
+        // Clear selection
+        selectedFilesForCompression = [];
+        updateSelectedFilesList();
+        document.getElementById('compressFileName').value = '';
+        document.getElementById('compressPassword').value = '';
+        document.getElementById('compressPasswordConfirm').value = '';
+    } else {
+        alert(`Error al comprimir: ${result.error}`);
+    }
+});
+
+// Toggle section collapse function - make it globally accessible
+window.toggleSection = function(sectionId) {
+    console.log('toggleSection called with:', sectionId);
+    const target = document.getElementById(sectionId);
+    if (target) {
+        target.classList.toggle('collapsed');
+        console.log('Toggled collapsed class on:', sectionId, 'Current classes:', target.className);
+    } else {
+        console.log('Target not found:', sectionId);
+    }
+};
+
+// Setup section collapse with event delegation (only for buttons and header, not h3)
+document.addEventListener('click', (e) => {
+    // Check if clicked on collapse button
+    const btn = e.target.closest('.section-collapse-btn');
+    if (btn) {
+        e.stopPropagation();
+        const targetId = btn.dataset.target;
+        console.log('Collapse button clicked, targetId:', targetId);
+        const target = document.getElementById(targetId);
+        if (target) {
+            target.classList.toggle('collapsed');
+            console.log('Toggled collapsed class on:', targetId, 'Current classes:', target.className);
+        }
+        return;
+    }
+
+    // Check if clicked on section-header (but not on h3 or button)
+    const header = e.target.closest('.section-header[data-target]');
+    if (header && !e.target.closest('h3') && !e.target.closest('.section-collapse-btn')) {
+        e.stopPropagation();
+        const targetId = header.dataset.target;
+        console.log('Section-header clicked, targetId:', targetId);
+        const target = document.getElementById(targetId);
+        if (target) {
+            target.classList.toggle('collapsed');
+            console.log('Toggled collapsed class on:', targetId, 'Current classes:', target.className);
+        }
+        return;
     }
 });

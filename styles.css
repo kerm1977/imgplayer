@@ -648,7 +648,8 @@ body {
 .sidebar.collapsed .actions,
 .sidebar.collapsed .transform-controls,
 .sidebar.collapsed .conversion-controls,
-.sidebar.collapsed .rename-controls {
+.sidebar.collapsed .rename-controls,
+.sidebar.collapsed .tools-controls {
     display: none;
 }
 
@@ -765,10 +766,16 @@ body {
 }
 
 .language-selector label {
-    display: block;
+    display: flex;
+    align-items: center;
     font-size: 12px;
     color: #b0b0b0;
     margin-bottom: 8px;
+}
+
+.language-selector label .language-icon {
+    margin-right: 6px;
+    flex-shrink: 0;
 }
 
 /* Help section */
@@ -840,7 +847,8 @@ body {
 /* Transform controls */
 .transform-controls,
 .conversion-controls,
-.rename-controls {
+.rename-controls,
+.tools-controls {
     background: #2a2a2a;
     border: 1px solid #3a3a3a;
     border-radius: 8px;
@@ -850,7 +858,8 @@ body {
 
 .transform-controls h3,
 .conversion-controls h3,
-.rename-controls h3 {
+.rename-controls h3,
+.tools-controls h3 {
     font-size: 14px;
     font-weight: 600;
     color: #ff6b35;
@@ -893,13 +902,15 @@ body {
 /* Collapsed section state */
 .transform-controls.collapsed .control-group,
 .conversion-controls.collapsed .control-group,
-.rename-controls.collapsed .control-group {
+.rename-controls.collapsed .control-group,
+.tools-controls.collapsed .control-group {
     display: none;
 }
 
 .transform-controls.collapsed .section-collapse-btn svg,
 .conversion-controls.collapsed .section-collapse-btn svg,
-.rename-controls.collapsed .section-collapse-btn svg {
+.rename-controls.collapsed .section-collapse-btn svg,
+.tools-controls.collapsed .section-collapse-btn svg {
     transform: rotate(-90deg);
 }
 
@@ -1019,6 +1030,103 @@ body {
     border: 1px solid #3a3a3a;
     border-radius: 8px;
     padding: 15px;
+    margin-bottom: 20px;
+}
+
+/* Compressor controls */
+.compressor-controls {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.compressor-controls.collapsed > *:not(.section-header) {
+    display: none;
+}
+
+.rename-controls.collapsed > *:not(.section-header) {
+    display: none;
+}
+
+.conversion-controls.collapsed > *:not(.section-header) {
+    display: none;
+}
+
+.transform-controls.collapsed > *:not(.section-header) {
+    display: none;
+}
+
+.selected-files-container {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #3a3a3a;
+}
+
+.selected-files-list {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+.selected-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    background: #3a3a3a;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: #e0e0e0;
+}
+
+.selected-file-item .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selected-file-item .remove-file {
+    background: #ff4444;
+    border: none;
+    color: #fff;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    margin-left: 10px;
+}
+
+.selected-file-item .remove-file:hover {
+    background: #ff6666;
+}
+
+.file-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.decompress-file {
+    background: #4CAF50;
+    border: none;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.2s;
+}
+
+.decompress-file:hover {
+    background: #45a049;
 }
 
 .rename-controls h3 {
@@ -1313,4 +1421,42 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #4a4a4a;
+}
+
+/* ============================================================================
+ * STICKERS / OVERLAY IMAGES - REMOVED
+ * ============================================================================
+
+/* ============================================================================
+ * CONTEXT MENU
+ * ============================================================================
+
+.context-menu {
+    position: fixed;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    min-width: 150px;
+    padding: 5px 0;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    color: #e0e0e0;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.context-menu-item:hover {
+    background: #3a3a3a;
+}
+
+.context-menu-item svg {
+    margin-right: 10px;
+    flex-shrink: 0;
 }

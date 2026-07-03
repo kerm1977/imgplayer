@@ -25,6 +25,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "adm-zip": "^0.5.18",
     "electron-store": "^8.2.0",
     "sharp": "^0.35.3"
   },

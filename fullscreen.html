@@ -78,11 +78,54 @@
             opacity: 0;
             transition: opacity 0.3s;
         }
+        .nav-btn {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 107, 53, 0.8);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        .nav-btn:hover {
+            background: rgba(255, 107, 53, 1);
+        }
+        .nav-btn.prev {
+            left: 20px;
+        }
+        .nav-btn.next {
+            right: 20px;
+        }
+        .image-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
     </style>
 </head>
 <body>
     <button class="close-btn" id="closeBtn">&times;</button>
-    <div class="controls-hint" id="controlsHint">Scroll: Zoom | Middle Click+Drag: Pan</div>
+    <div class="controls-hint" id="controlsHint">Scroll: Zoom | Middle Click+Drag: Pan | Arrow Keys: Navigate</div>
+    <button class="nav-btn prev" id="prevBtn">‹</button>
+    <button class="nav-btn next" id="nextBtn">›</button>
+    <div class="image-counter" id="imageCounter">1 / 1</div>
     <img id="fullscreenImage" src="" alt="Fullscreen Image">
     <div class="close-hint">Presiona ESC para cerrar</div>
     <script>
@@ -90,15 +133,69 @@
         const img = document.getElementById('fullscreenImage');
         const closeBtn = document.getElementById('closeBtn');
         const controlsHint = document.getElementById('controlsHint');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const imageCounter = document.getElementById('imageCounter');
 
         let zoomLevel = 1;
         let isPanning = false;
         let startX, startY, translateX = 0, translateY = 0;
+        let images = [];
+        let currentIndex = 0;
 
         // Load image when path is received
         ipcRenderer.on('load-image', (event, imagePath) => {
             img.src = `file://${imagePath}`;
+            // Request images list and current index
+            ipcRenderer.send('get-images-info');
         });
+
+        // Receive images info
+        ipcRenderer.on('images-info', (event, data) => {
+            images = data.images || [];
+            currentIndex = data.currentIndex || 0;
+            updateCounter();
+        });
+
+        // Update counter display
+        function updateCounter() {
+            if (images.length > 0) {
+                imageCounter.textContent = `${currentIndex + 1} / ${images.length}`;
+            }
+        }
+
+        // Navigate to previous image
+        function prevImage() {
+            if (images.length > 0 && currentIndex > 0) {
+                currentIndex--;
+                loadCurrentImage();
+            }
+        }
+
+        // Navigate to next image
+        function nextImage() {
+            if (images.length > 0 && currentIndex < images.length - 1) {
+                currentIndex++;
+                loadCurrentImage();
+            }
+        }
+
+        // Load current image
+        function loadCurrentImage() {
+            if (images[currentIndex]) {
+                img.src = `file://${images[currentIndex]}`;
+                updateCounter();
+                // Reset zoom and pan
+                zoomLevel = 1;
+                translateX = 0;
+                translateY = 0;
+                updateTransform();
+            }
+        }
+
+        // Navigation buttons
+        prevBtn.addEventListener('click', prevImage);
+        nextBtn.addEventListener('click', nextImage);
 
         // Close button
         closeBtn.addEventListener('click', () => {
@@ -109,6 +206,10 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 window.close();
+            } else if (e.key === 'ArrowLeft') {
+                prevImage();
+            } else if (e.key === 'ArrowRight') {
+                nextImage();
             }
         });
 
@@ -157,9 +258,15 @@
         document.addEventListener('mousemove', () => {
             closeBtn.style.opacity = '1';
             controlsHint.style.opacity = '1';
+            prevBtn.style.opacity = '1';
+            nextBtn.style.opacity = '1';
+            imageCounter.style.opacity = '1';
             setTimeout(() => {
                 closeBtn.style.opacity = '0';
                 controlsHint.style.opacity = '0';
+                prevBtn.style.opacity = '0';
+                nextBtn.style.opacity = '0';
+                imageCounter.style.opacity = '0';
             }, 2000);
         });
     </script>
