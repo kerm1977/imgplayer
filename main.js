@@ -105,8 +105,54 @@ function createWindow() {
 // APP LIFECYCLE EVENTS
 // ============================================================================
 
+// Store file to open when window is ready
+let fileToOpen = null;
+
+// Handle opening files from system (double-click on file)
+app.on('open-file', (event, path) => {
+    console.log('open-file event received:', path);
+    event.preventDefault();
+    fileToOpen = path;
+    
+    if (mainWindow) {
+        console.log('Sending open-file to renderer:', path);
+        mainWindow.webContents.send('open-file', path);
+    } else {
+        console.log('Main window not ready, storing file to open later');
+    }
+});
+
 // Create window when Electron is ready
-app.on('ready', createWindow);
+app.on('ready', () => {
+    createWindow();
+    
+    // Check if file was passed as command line argument
+    const args = process.argv.slice(1);
+    console.log('Command line args:', args);
+    
+    // Find first argument that looks like a file path (not starting with -)
+    const filePath = args.find(arg => !arg.startsWith('-') && fs.existsSync(arg));
+    
+    if (filePath) {
+        console.log('Found file path in args:', filePath);
+        fileToOpen = filePath;
+    }
+    
+    // Send file to renderer when window is ready
+    if (mainWindow) {
+        mainWindow.webContents.on('did-finish-load', () => {
+            console.log('Window finished loading');
+            // Add a small delay to ensure renderer is fully ready
+            setTimeout(() => {
+                if (fileToOpen) {
+                    console.log('Sending file to renderer:', fileToOpen);
+                    mainWindow.webContents.send('open-file', fileToOpen);
+                    fileToOpen = null;
+                }
+            }, 500);
+        });
+    }
+});
 
 // Quit when all windows are closed (except on macOS)
 app.on('window-all-closed', () => {
@@ -140,6 +186,36 @@ ipcMain.handle('select-image-files', async () => {
 
     if (!result.canceled) {
         return result.filePaths;
+    }
+    return null;
+});
+
+// IPC handler for selecting a folder
+// Allows user to select a folder containing images
+// Returns: Array of image file paths in the selected folder (null if canceled)
+ipcMain.handle('select-image-folder', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+        const folderPath = result.filePaths[0];
+        const fs = require('fs');
+        const path = require('path');
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'heic', 'heif', 'svg', 'ico'];
+
+        try {
+            const files = fs.readdirSync(folderPath);
+            const imageFiles = files.filter(file => {
+                const ext = path.extname(file).toLowerCase().replace('.', '');
+                return imageExtensions.includes(ext);
+            }).map(file => path.join(folderPath, file));
+
+            return imageFiles;
+        } catch (error) {
+            console.error('Error reading folder:', error);
+            return null;
+        }
     }
     return null;
 });
@@ -387,52 +463,6 @@ ipcMain.on('close-window', () => {
 // IPC handler for toggling DevTools
 ipcMain.on('toggle-devtools', () => {
     if (mainWindow) mainWindow.webContents.toggleDevTools();
-});
-
-// ============================================================================
-// FULLSCREEN WINDOW
-// ============================================================================
-
-let fullscreenWindow = null;
-
-// IPC handler for opening image in fullscreen window
-ipcMain.on('open-fullscreen', (event, imagePath, imagesList, currentIndex) => {
-    if (fullscreenWindow) {
-        fullscreenWindow.close();
-    }
-
-    fullscreenWindow = new BrowserWindow({
-        width: screen.getPrimaryDisplay().workAreaSize.width,
-        height: screen.getPrimaryDisplay().workAreaSize.height,
-        frame: false,
-        transparent: false,
-        backgroundColor: '#000',
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-            enableRemoteModule: true
-        }
-    });
-
-    fullscreenWindow.loadFile('fullscreen.html');
-
-    // Send image path and images info when window is ready
-    fullscreenWindow.webContents.on('did-finish-load', () => {
-        fullscreenWindow.webContents.send('load-image', imagePath);
-        fullscreenWindow.webContents.send('images-info', {
-            images: imagesList,
-            currentIndex: currentIndex
-        });
-    });
-
-    fullscreenWindow.on('closed', () => {
-        fullscreenWindow = null;
-    });
-
-    // Close on Escape key
-    fullscreenWindow.on('focus', () => {
-        fullscreenWindow.webContents.send('window-focused');
-    });
 });
 
 // ============================================================================

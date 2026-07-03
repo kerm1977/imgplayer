@@ -27,13 +27,14 @@
   "dependencies": {
     "adm-zip": "^0.5.18",
     "electron-store": "^8.2.0",
-    "sharp": "^0.35.3"
+    "sharp": "^0.32.6"
   },
   "build": {
     "appId": "com.imageviewer.app",
     "productName": "ImageViewer",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "**/*",
@@ -46,7 +47,18 @@
         "rpm"
       ],
       "category": "Graphics",
-      "maintainer": "ImageViewer Team"
+      "maintainer": "ImageViewer Team",
+      "icon": "build",
+      "mimeTypes": [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "image/svg+xml",
+        "image/tiff",
+        "image/x-icon"
+      ]
     }
   }
 }

@@ -616,6 +616,15 @@ body {
     grid-template-columns: 280px 1fr;
     gap: 0;
     overflow: hidden;
+    transition: grid-template-columns 0.3s ease;
+}
+
+/* CRITICAL: DO NOT MODIFY - Sidebar collapse layout */
+/* TERMINANTELY PROHIBITED: Do not change the grid layout behavior */
+/* When sidebar is collapsed, main container uses full width (0px for sidebar) */
+/* This ensures image centers completely without gray background strip */
+.main-container.sidebar-collapsed {
+    grid-template-columns: 0px 1fr;
 }
 
 /* ============================================================================

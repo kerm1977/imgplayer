@@ -13,6 +13,7 @@ It handles:
 
 const { ipcRenderer } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 // ============================================================================
 // DOM ELEMENTS
@@ -102,11 +103,20 @@ closeBtn.addEventListener('click', () => {
 // ============================================================================
 // SIDEBAR COLLAPSE
 // ============================================================================
+// CRITICAL: DO NOT MODIFY THIS SIDEBAR COLLAPSE SYSTEM
+// TERMINANTELY PROHIBITED:
+// - DO NOT change the grid layout behavior
+// - DO NOT remove the sidebar-collapsed class toggle
+// - DO NOT modify the icon update logic
+// The sidebar collapse must use grid-template-columns: 0px 1fr to center image completely
+// Any changes will break the centering behavior and cause gray background strip
 
 // Toggle sidebar collapse
 collapseBtn.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
-    
+    const mainContainer = document.querySelector('.main-container');
+    mainContainer.classList.toggle('sidebar-collapsed');
+
     // Update icon based on sidebar state
     const icon = collapseBtn.querySelector('.collapse-icon');
     if (sidebar.classList.contains('collapsed')) {
@@ -116,7 +126,7 @@ collapseBtn.addEventListener('click', () => {
         // When expanded, icon should point left (<)
         icon.innerHTML = '<path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>';
     }
-    
+
     // Save settings
     saveSettings();
 });
@@ -188,16 +198,18 @@ async function loadSettings() {
         }
         
         // Apply sidebar collapsed state
-        if (settings.sidebarCollapsed !== undefined) {
-            if (settings.sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-                const icon = collapseBtn.querySelector('.collapse-icon');
-                icon.innerHTML = '<path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/>';
-            } else {
-                sidebar.classList.remove('collapsed');
-                const icon = collapseBtn.querySelector('.collapse-icon');
-                icon.innerHTML = '<path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>';
-            }
+        // CRITICAL: DO NOT MODIFY - Sidebar must be collapsed by default on startup
+        // TERMINANTELY PROHIBITED: Do not change default collapsed state
+        // Sidebar is always collapsed on startup to maximize image viewing area
+        // Force collapsed state regardless of saved settings
+        sidebar.classList.add('collapsed');
+        const mainContainer = document.querySelector('.main-container');
+        if (mainContainer) {
+            mainContainer.classList.add('sidebar-collapsed');
+        }
+        const icon = collapseBtn.querySelector('.collapse-icon');
+        if (icon) {
+            icon.innerHTML = '<path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/>';
         }
         
         // Apply last output path
@@ -236,6 +248,22 @@ async function saveSettings() {
     
     await ipcRenderer.send('save-settings', settings);
 }
+
+// CRITICAL: DO NOT MODIFY - Sidebar must be collapsed by default on startup
+// TERMINANTELY PROHIBITED: Do not remove this initialization
+// Sidebar is collapsed immediately on DOM load to ensure correct initial state
+// This runs before loadSettings() to guarantee collapsed state
+document.addEventListener('DOMContentLoaded', () => {
+    sidebar.classList.add('collapsed');
+    const mainContainer = document.querySelector('.main-container');
+    if (mainContainer) {
+        mainContainer.classList.add('sidebar-collapsed');
+    }
+    const icon = collapseBtn.querySelector('.collapse-icon');
+    if (icon) {
+        icon.innerHTML = '<path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/>';
+    }
+});
 
 // Load settings on startup
 loadSettings();
@@ -707,19 +735,32 @@ function closeFileDialog() {
 
 // Load selected images from dialog
 async function loadSelectedImages(selectedFiles) {
+    console.log('loadSelectedImages called with:', selectedFiles);
     if (selectedFiles && selectedFiles.length > 0) {
         const imageFiles = selectedFiles.filter(file => {
             const ext = file.toLowerCase();
-            return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif', '.heic', '.heif', '.svg', '.ico'].some(e => ext.endsWith(e));
+            const isValid = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif', '.heic', '.heif', '.svg', '.ico'].some(e => ext.endsWith(e));
+            console.log(`File: ${file}, Valid: ${isValid}`);
+            return isValid;
         });
+        
+        console.log('Filtered image files:', imageFiles);
         
         if (imageFiles.length > 0) {
             if (imageFiles.length === 1) {
+                console.log('Single file, getting folder images for:', imageFiles[0]);
                 const folderImages = await ipcRenderer.invoke('get-folder-images', imageFiles[0]);
+                console.log('Folder images returned:', folderImages);
                 if (folderImages && folderImages.length > 0) {
                     images = folderImages;
                     currentImageIndex = images.indexOf(imageFiles[0]);
                     if (currentImageIndex === -1) currentImageIndex = 0;
+                    console.log('Calling displayImage with index:', currentImageIndex);
+                    displayImage(currentImageIndex);
+                } else {
+                    console.log('No folder images found, using single file');
+                    images = imageFiles;
+                    currentImageIndex = 0;
                     displayImage(currentImageIndex);
                 }
             } else {
@@ -727,7 +768,11 @@ async function loadSelectedImages(selectedFiles) {
                 currentImageIndex = 0;
                 displayImage(currentImageIndex);
             }
+        } else {
+            console.log('No valid image files found');
         }
+    } else {
+        console.log('No files provided to loadSelectedImages');
     }
 }
 
@@ -736,10 +781,20 @@ openImagesBtn.addEventListener('click', async () => {
     // Show file dialog overlay
     const overlay = document.getElementById('fileDialogOverlay');
     overlay.style.display = 'flex';
-    
+
     // Initialize file dialog
     initFileDialog();
 });
+
+// CRITICAL: DO NOT MODIFY - Select image folder function
+// TERMINANTELY PROHIBITED: Do not modify this function
+// Opens folder dialog to select image folder (triggered by A key)
+async function selectImageFolder() {
+    const result = await ipcRenderer.invoke('select-image-folder');
+    if (result && result.length > 0) {
+        loadSelectedImages(result);
+    }
+}
 
 // Display image at specified index
 function displayImage(index, forceReload = false) {
@@ -794,14 +849,13 @@ function displayImage(index, forceReload = false) {
     
     imageContainer.appendChild(img);
     
-    // Add double click to enter fullscreen
+    // Add double click to enter fullscreen (mode full)
     img.addEventListener('dblclick', (e) => {
         e.preventDefault();
         toggleFullscreen();
     });
     
-    // Update navigation
-    imageNavigation.style.display = 'flex';
+    // Update navigation counter
     imageCounter.textContent = `${index + 1} / ${images.length}`;
     
     // Update button states
@@ -862,6 +916,48 @@ nextImageBtn.addEventListener('click', (e) => {
 
 // Keyboard navigation
 document.addEventListener('keydown', (e) => {
+    // CRITICAL: DO NOT MODIFY - Shift+A opens image dialog
+    // TERMINANTELY PROHIBITED: Do not change Shift+A behavior
+    // Shift+A opens "Abrir Imágenes" dialog (same as openImagesBtn)
+    if (e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        openImagesBtn.click();
+        return;
+    }
+
+    // CRITICAL: DO NOT MODIFY - A opens folder dialog
+    // TERMINANTELY PROHIBITED: Do not change A behavior
+    // A opens folder dialog to select image folder
+    if (!e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        selectImageFolder();
+        return;
+    }
+
+    // CRITICAL: DO NOT MODIFY - C key toggles sidebar collapse
+    // TERMINANTELY PROHIBITED: Do not change C key behavior
+    // C key toggles sidebar collapse/expand (same as collapse button)
+    if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        sidebar.classList.toggle('collapsed');
+        const mainContainer = document.querySelector('.main-container');
+        mainContainer.classList.toggle('sidebar-collapsed');
+
+        // Update icon based on sidebar state
+        const icon = collapseBtn.querySelector('.collapse-icon');
+        if (sidebar.classList.contains('collapsed')) {
+            // When collapsed, icon should point right (>)
+            icon.innerHTML = '<path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/>';
+        } else {
+            // When expanded, icon should point left (<)
+            icon.innerHTML = '<path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>';
+        }
+
+        // Save settings
+        saveSettings();
+        return;
+    }
+
     // Delete/Suprimir to delete current image
     if ((e.key === 'Delete' || e.key === 'Suprimir') && currentImagePath) {
         e.preventDefault();
@@ -869,18 +965,17 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    // Spacebar to control slideshow in fullscreen, otherwise reset image to 100%
+    // CRITICAL: DO NOT MODIFY - Spacebar resets image to 100%
+    // TERMINANTELY PROHIBITED: Do not change spacebar behavior
+    // Spacebar always resets image to 100% in both viewer and fullscreen modes
+    // This is intentional behavior and must never be changed to control slideshow
     if (e.key === ' ' && currentImagePath) {
         e.preventDefault();
-        if (isFullscreen) {
-            toggleSlideshow();
-        } else {
-            resetImageTo100();
-        }
+        resetImageTo100();
         return;
     }
 
-    // Double click to enter fullscreen
+    // Enter key to enter fullscreen (mode full)
     if (e.key === 'Enter' && currentImagePath) {
         e.preventDefault();
         toggleFullscreen();
@@ -893,7 +988,23 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    // Image navigation with Alt key
+    // CRITICAL: DO NOT MODIFY - Arrow keys for navigation in fullscreen mode
+    // TERMINANTELY PROHIBITED: Do not change arrow key behavior in fullscreen
+    // In fullscreen mode, arrow keys navigate between images (not rotate)
+    // This is intentional behavior to prevent image rotation in fullscreen
+    if (isFullscreen) {
+        if (e.key === 'ArrowLeft' && currentImageIndex > 0) {
+            e.preventDefault();
+            displayImage(currentImageIndex - 1);
+            return;
+        } else if (e.key === 'ArrowRight' && currentImageIndex < images.length - 1) {
+            e.preventDefault();
+            displayImage(currentImageIndex + 1);
+            return;
+        }
+    }
+
+    // Image navigation with Alt key (in viewer mode)
     if (e.altKey) {
         if (e.key === 'ArrowLeft' && currentImageIndex > 0) {
             displayImage(currentImageIndex - 1);
@@ -901,8 +1012,11 @@ document.addEventListener('keydown', (e) => {
             displayImage(currentImageIndex + 1);
         }
     }
-    // Image transformations
-    else if (currentImagePath) {
+    // CRITICAL: DO NOT MODIFY - Image transformations only in viewer mode, not fullscreen
+    // TERMINANTELY PROHIBITED: Do not enable image rotation in fullscreen mode
+    // Image rotation (arrow keys) is intentionally disabled in fullscreen
+    // The !isFullscreen check is mandatory and must never be removed
+    else if (currentImagePath && !isFullscreen) {
         if (e.key === 'ArrowRight' && !e.shiftKey) {
             rotateRight();
         } else if (e.key === 'ArrowLeft' && !e.shiftKey) {
@@ -995,8 +1109,18 @@ function resetImageTo100() {
 }
 
 // ============================================================================
-// FULLSCREEN
+// FULLSCREEN - DOM FULLSCREEN MODE ONLY
 // ============================================================================
+// CRITICAL: DO NOT MODIFY THIS FULLSCREEN SYSTEM
+// This code implements DOM fullscreen mode (mode full) using requestFullscreen().
+// TERMINANTELY PROHIBITED:
+// - DO NOT switch to window fullscreen mode (mode 2)
+// - DO NOT use open-fullscreen IPC
+// - DO NOT create or use fullscreen.html
+// - DO NOT modify fullscreen behavior
+// The only allowed fullscreen mode is DOM fullscreen via requestFullscreen().
+// Any changes to this system will break the application.
+// Mode 2 (window fullscreen) is permanently removed and must never be reinstated.
 
 let isFullscreen = false;
 
@@ -1009,6 +1133,7 @@ function toggleFullscreen() {
 }
 
 function enterFullscreen() {
+    // CRITICAL: DO NOT MODIFY - Uses DOM fullscreen API only
     const imageContainer = document.getElementById('imageContainer');
     if (imageContainer) {
         imageContainer.requestFullscreen().catch(err => {
@@ -1019,6 +1144,7 @@ function enterFullscreen() {
 }
 
 function exitFullscreen() {
+    // CRITICAL: DO NOT MODIFY - Exits DOM fullscreen only
     if (document.fullscreenElement) {
         document.exitFullscreen();
         isFullscreen = false;
@@ -1027,7 +1153,7 @@ function exitFullscreen() {
 
 document.addEventListener('fullscreenchange', () => {
     isFullscreen = !!document.fullscreenElement;
-    
+
     // Show/hide fullscreen counter
     const fullscreenCounter = document.getElementById('fullscreenCounter');
     if (fullscreenCounter) {
@@ -1036,6 +1162,52 @@ document.addEventListener('fullscreenchange', () => {
             document.getElementById('fullscreenCounterText').textContent = `${currentImageIndex + 1} / ${images.length}`;
         } else {
             fullscreenCounter.style.display = 'none';
+        }
+    }
+
+    // Show/hide fullscreen buttons
+    const fullscreenSlideshowBtn = document.getElementById('fullscreenSlideshowBtn');
+    const fullscreenCloseBtn = document.getElementById('fullscreenCloseBtn');
+    if (fullscreenSlideshowBtn && fullscreenCloseBtn) {
+        if (isFullscreen) {
+            fullscreenSlideshowBtn.style.display = 'flex';
+            fullscreenCloseBtn.style.display = 'flex';
+        } else {
+            fullscreenSlideshowBtn.style.display = 'none';
+            fullscreenCloseBtn.style.display = 'none';
+        }
+    }
+});
+
+// Fullscreen close button
+document.getElementById('fullscreenCloseBtn').addEventListener('click', () => {
+    exitFullscreen();
+});
+
+// Fullscreen slideshow button
+document.getElementById('fullscreenSlideshowBtn').addEventListener('click', () => {
+    toggleSlideshow();
+    // Update button style based on slideshow state
+    const btn = document.getElementById('fullscreenSlideshowBtn');
+    if (slideshowRunning) {
+        btn.style.background = 'rgba(76, 175, 80, 0.8)';
+    } else {
+        btn.style.background = 'rgba(255, 107, 53, 0.8)';
+    }
+});
+
+// Show/hide fullscreen buttons on mouse move in fullscreen
+document.addEventListener('mousemove', () => {
+    if (isFullscreen) {
+        const fullscreenSlideshowBtn = document.getElementById('fullscreenSlideshowBtn');
+        const fullscreenCloseBtn = document.getElementById('fullscreenCloseBtn');
+        if (fullscreenSlideshowBtn && fullscreenCloseBtn) {
+            fullscreenSlideshowBtn.style.opacity = '1';
+            fullscreenCloseBtn.style.opacity = '1';
+            setTimeout(() => {
+                fullscreenSlideshowBtn.style.opacity = '0';
+                fullscreenCloseBtn.style.opacity = '0';
+            }, 2000);
         }
     }
 });
@@ -1242,17 +1414,6 @@ function updateImageTransform() {
 }
 
 // ============================================================================
-// FULLSCREEN ON DOUBLE CLICK
-// ============================================================================
-
-// Open image in fullscreen on double click
-imageContainer.addEventListener('dblclick', () => {
-    if (currentImagePath) {
-        ipcRenderer.send('open-fullscreen', currentImagePath, images, currentImageIndex);
-    }
-});
-
-// ============================================================================
 // IMAGE TRANSFORMATION - SCALE
 // ============================================================================
 
@@ -1384,6 +1545,18 @@ ipcRenderer.on('window-unmaximized', () => {
     document.body.classList.remove('maximized');
 });
 
+// Handle opening file from system (double-click on file)
+ipcRenderer.on('open-file', async (event, filePath) => {
+    console.log('Received file to open:', filePath);
+    console.log('File exists:', fs.existsSync(filePath));
+    if (filePath && fs.existsSync(filePath)) {
+        console.log('Calling loadSelectedImages with:', filePath);
+        await loadSelectedImages([filePath]);
+    } else {
+        console.log('File does not exist or path is null');
+    }
+});
+
 // ============================================================================
 // FILE RENAME
 // ============================================================================
@@ -1427,33 +1600,56 @@ renameAllBtn.addEventListener('click', async () => {
         alert(translations[currentLanguage].noImagesLoaded);
         return;
     }
-    
+
     const baseName = newFileName.value.trim();
     if (!baseName) {
         alert(translations[currentLanguage].enterBaseName);
         return;
     }
-    
-    const renameOperations = [];
-    const errors = [];
-    
+
+    // Store rename operations for later use
+    window.pendingRenameOperations = [];
     for (let i = 0; i < images.length; i++) {
         const oldPath = images[i];
         const ext = path.basename(oldPath).split('.').pop();
         const newPath = path.join(path.dirname(oldPath), `${baseName}_${String(i + 1).padStart(3, '0')}.${ext}`);
-        renameOperations.push({ oldPath, newPath });
+        window.pendingRenameOperations.push({ oldPath, newPath });
     }
-    
+
+    // Show first confirmation modal
+    document.getElementById('renameFileCount').textContent = images.length;
+    document.getElementById('batchRenameConfirmModal').style.display = 'flex';
+});
+
+// First confirmation - show second confirmation
+document.getElementById('confirmBatchRenameFirst').addEventListener('click', () => {
+    document.getElementById('batchRenameConfirmModal').style.display = 'none';
+    document.getElementById('renameFileCountSecond').textContent = images.length;
+    document.getElementById('batchRenameSecondConfirmModal').style.display = 'flex';
+});
+
+// Cancel first confirmation
+document.getElementById('cancelBatchRename').addEventListener('click', () => {
+    document.getElementById('batchRenameConfirmModal').style.display = 'none';
+    window.pendingRenameOperations = null;
+});
+
+// Second confirmation - execute rename
+document.getElementById('confirmBatchRenameSecond').addEventListener('click', async () => {
+    document.getElementById('batchRenameSecondConfirmModal').style.display = 'none';
+
+    if (!window.pendingRenameOperations) return;
+
     progressModal.style.display = 'flex';
     progressMessage.textContent = translations[currentLanguage].renaming;
-    
-    const result = await ipcRenderer.invoke('batch-rename-files', renameOperations);
-    
+
+    const result = await ipcRenderer.invoke('batch-rename-files', window.pendingRenameOperations);
+
     progressModal.style.display = 'none';
-    
+
     if (result.success) {
         // Update images array with new paths
-        images = renameOperations.map(op => op.newPath);
+        images = window.pendingRenameOperations.map(op => op.newPath);
         currentImagePath = images[currentImageIndex];
         displayImage(currentImageIndex, true);
         newFileName.value = '';
@@ -1461,6 +1657,14 @@ renameAllBtn.addEventListener('click', async () => {
     } else {
         alert(`${translations[currentLanguage].renameErrors}: ${result.failed}\n${result.errors.map(e => e.error).join('\n')}`);
     }
+
+    window.pendingRenameOperations = null;
+});
+
+// Cancel second confirmation
+document.getElementById('cancelBatchRenameSecond').addEventListener('click', () => {
+    document.getElementById('batchRenameSecondConfirmModal').style.display = 'none';
+    window.pendingRenameOperations = null;
 });
 
 // ============================================================================

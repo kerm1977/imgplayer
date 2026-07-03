@@ -277,9 +277,25 @@
     </div>
 
     <!-- Fullscreen image counter -->
+    <!-- CRITICAL: DO NOT MODIFY - DOM fullscreen mode controls only -->
+    <!-- TERMINANTELY PROHIBITED: Do not switch to window fullscreen mode (mode 2) -->
     <div id="fullscreenCounter" style="position: fixed !important; bottom: 20px !important; left: 20px !important; background: rgba(0, 0, 0, 0.7) !important; color: white !important; padding: 10px 15px !important; border-radius: 5px !important; font-size: 16px !important; z-index: 999998 !important; display: none !important;">
         <span id="fullscreenCounterText">1 / 1</span>
     </div>
+
+    <!-- Fullscreen slideshow button -->
+    <!-- CRITICAL: DO NOT MODIFY - DOM fullscreen mode controls only -->
+    <!-- TERMINANTELY PROHIBITED: Do not switch to window fullscreen mode (mode 2) -->
+    <button id="fullscreenSlideshowBtn" style="position: fixed !important; top: 20px !important; right: 70px !important; width: 40px !important; height: 40px !important; background: rgba(255, 107, 53, 0.8) !important; border: none !important; border-radius: 50% !important; color: white !important; font-size: 20px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; opacity: 0 !important; transition: opacity 0.3s !important; z-index: 999999 !important; pointer-events: auto !important; display: none !important;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+        </svg>
+    </button>
+
+    <!-- Fullscreen close button -->
+    <!-- CRITICAL: DO NOT MODIFY - DOM fullscreen mode controls only -->
+    <!-- TERMINANTELY PROHIBITED: Do not switch to window fullscreen mode (mode 2) -->
+    <button id="fullscreenCloseBtn" style="position: fixed !important; top: 20px !important; right: 20px !important; width: 40px !important; height: 40px !important; background: rgba(255, 95, 87, 0.8) !important; border: none !important; border-radius: 50% !important; color: white !important; font-size: 24px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; opacity: 0 !important; transition: opacity 0.3s !important; z-index: 999999 !important; pointer-events: auto !important; display: none !important;">&times;</button>
 
     <!-- ============================================================================
          MODAL - Conversion Progress
@@ -384,6 +400,56 @@
                 <div class="footer-buttons">
                     <button class="btn btn-secondary" id="cancelFileDialogBtn" data-i18n="cancel">Cancelar</button>
                     <button class="btn btn-primary" id="selectFileDialogBtn" data-i18n="select">Seleccionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================
+         MODAL - Batch Rename Confirmation (Double Confirmation)
+         ============================================================================
+    -->
+    <div class="modal" id="batchRenameConfirmModal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none;">
+                <h2>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="#ff6b35" style="pointer-events:none;vertical-align:middle;margin-right:8px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+                    <span data-i18n="renameAll">Renombrar Todos</span>
+                </h2>
+            </div>
+            <div class="modal-body" style="padding-top: 0;">
+                <p style="color: #b0b0b0; margin-bottom: 20px;">
+                    ¿Estás seguro de que quieres renombrar <span id="renameFileCount">0</span> archivos?
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="modal-btn secondary" id="cancelBatchRename">Cancelar</button>
+                    <button class="modal-btn primary" id="confirmBatchRenameFirst" style="background: #ff6b35;">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================
+         MODAL - Batch Rename Second Confirmation
+         ============================================================================
+    -->
+    <div class="modal" id="batchRenameSecondConfirmModal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none;">
+                <h2>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="#e05050" style="pointer-events:none;vertical-align:middle;margin-right:8px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+                    <span>¡Confirmación Final!</span>
+                </h2>
+            </div>
+            <div class="modal-body" style="padding-top: 0;">
+                <p style="color: #b0b0b0; margin-bottom: 20px;">
+                    Esta acción renombrará <span id="renameFileCountSecond">0</span> archivos permanentemente.
+                    <br><br>
+                    <strong style="color: #e05050;">¿Estás ABSOLUTAMENTE seguro?</strong>
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="modal-btn secondary" id="cancelBatchRenameSecond">Cancelar</button>
+                    <button class="modal-btn primary" id="confirmBatchRenameSecond" style="background: #e05050;">Sí, Renombrar</button>
                 </div>
             </div>
         </div>
