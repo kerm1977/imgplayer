@@ -68,7 +68,7 @@ function createWindow() {
         height: 720,        // Initial window height in pixels
         minWidth: 960,      // Minimum width to prevent UI layout deformation
         minHeight: 660,     // Minimum height to prevent UI layout deformation
-        title: 'PMOS Image Viewer',  // Window title displayed in title bar
+        title: 'ARIA Image Viewer',  // Window title displayed in title bar
         frame: false,         // Remove native OS frame for custom rounded corners
         transparent: true,    // Enable transparency for custom rounded corner effect
         webPreferences: {
@@ -169,6 +169,103 @@ app.on('activate', () => {
 });
 
 // ============================================================================
+// IPC HANDLERS - SYSTEM INFORMATION
+// ============================================================================
+
+// IPC handler for getting system locale
+// Returns: System locale string (e.g., 'en-US', 'es-ES', etc.)
+ipcMain.handle('get-system-locale', async () => {
+    const appLocale = app.getLocale();
+    return appLocale;
+});
+
+// ============================================================================
+// IPC HANDLERS - IMAGE BUFFERING
+// ============================================================================
+
+// IPC handler for getting image metadata without loading full image
+// Returns: Image metadata (width, height, format, size)
+ipcMain.handle('get-image-metadata', async (event, imagePath) => {
+    try {
+        const metadata = await sharp(imagePath).metadata();
+        const stats = fs.statSync(imagePath);
+        return {
+            success: true,
+            width: metadata.width,
+            height: metadata.height,
+            format: metadata.format,
+            size: stats.size,
+            isLarge: metadata.width > 4000 || metadata.height > 4000
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+// IPC handler for generating a preview/thumbnail of large images
+// Returns: Buffer of the preview image
+ipcMain.handle('generate-image-preview', async (event, imagePath, maxWidth = 1920, maxHeight = 1080) => {
+    try {
+        const image = sharp(imagePath);
+        const metadata = await image.metadata();
+        
+        // Calculate dimensions maintaining aspect ratio
+        let width = metadata.width;
+        let height = metadata.height;
+        
+        if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+        }
+        
+        const buffer = await image
+            .resize(width, height, {
+                fit: 'inside',
+                withoutEnlargement: true
+            })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+            
+        return {
+            success: true,
+            buffer: buffer,
+            width: width,
+            height: height
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+// IPC handler for getting a tiled region of a large image
+// Returns: Buffer of the requested tile
+ipcMain.handle('get-image-tile', async (event, imagePath, x, y, width, height) => {
+    try {
+        const buffer = await sharp(imagePath)
+            .extract({ left: x, top: y, width: width, height: height })
+            .jpeg({ quality: 90 })
+            .toBuffer();
+            
+        return {
+            success: true,
+            buffer: buffer
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+// ============================================================================
 // IPC HANDLERS - FILE SELECTION
 // ============================================================================
 
@@ -194,30 +291,45 @@ ipcMain.handle('select-image-files', async () => {
 // Allows user to select a folder containing images
 // Returns: Array of image file paths in the selected folder (null if canceled)
 ipcMain.handle('select-image-folder', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openDirectory']
-    });
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
 
-    if (!result.canceled && result.filePaths.length > 0) {
-        const folderPath = result.filePaths[0];
-        const fs = require('fs');
-        const path = require('path');
+    // Get user's Pictures folder
+    const homeDir = os.homedir();
+    const picturesPath = path.join(homeDir, 'Pictures');
+
+    // Check if Pictures folder exists
+    if (fs.existsSync(picturesPath)) {
         const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'heic', 'heif', 'svg', 'ico'];
 
         try {
-            const files = fs.readdirSync(folderPath);
+            const files = fs.readdirSync(picturesPath);
             const imageFiles = files.filter(file => {
                 const ext = path.extname(file).toLowerCase().replace('.', '');
                 return imageExtensions.includes(ext);
-            }).map(file => path.join(folderPath, file));
+            }).map(file => path.join(picturesPath, file));
 
             return imageFiles;
         } catch (error) {
-            console.error('Error reading folder:', error);
+            console.error('Error reading Pictures folder:', error);
             return null;
         }
+    } else {
+        // If Pictures folder doesn't exist, show dialog
+        const result = await dialog.showOpenDialog(mainWindow, {
+            properties: ['openFile', 'multiSelections'],
+            filters: [
+                { name: 'Image Files', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'heic', 'heif', 'svg', 'ico'] },
+                { name: 'All Files', extensions: ['*'] }
+            ]
+        });
+
+        if (!result.canceled) {
+            return result.filePaths;
+        }
+        return null;
     }
-    return null;
 });
 
 // IPC handler for getting all images from a folder
@@ -433,6 +545,94 @@ ipcMain.handle('select-save-path', async () => {
         return result.filePath;
     }
     return null;
+});
+
+// IPC handler for saving copy with color correction
+// Saves image with applied color correction filters
+// Parameters: sourcePath, savePath, colorCorrection object
+// Returns: success status
+ipcMain.handle('save-copy-with-colors', async (event, data) => {
+    try {
+        const sharp = require('sharp');
+        const fs = require('fs');
+        const path = require('path');
+
+        const { sourcePath, savePath, colorCorrection } = data;
+
+        // Load image
+        let image = sharp(sourcePath);
+
+        // Apply color correction using sharp
+        const metadata = await image.metadata();
+
+        // Apply brightness
+        if (colorCorrection.brightness !== 0) {
+            const brightnessValue = 1 + (colorCorrection.brightness / 100);
+            image = image.modulate({ brightness: brightnessValue });
+        }
+
+        // Apply contrast
+        if (colorCorrection.contrast !== 0) {
+            const contrastValue = 1 + (colorCorrection.contrast / 100);
+            image = image.linear(contrastValue, -(128 * contrastValue) + 128);
+        }
+
+        // Apply blur
+        if (colorCorrection.blur > 0) {
+            image = image.blur(colorCorrection.blur);
+        }
+
+        // Apply RGB tint (using linear with channel-specific offsets to match CSS filter)
+        if (colorCorrection.r !== 0 || colorCorrection.g !== 0 || colorCorrection.b !== 0) {
+            // CSS filter matrix: 1 0 0 0 r/255, 0 1 0 0 g/255, 0 0 1 0 b/255, 0 0 0 1 0
+            // This adds offset to each channel. We'll use linear with the exact CSS values
+            const rOffset = colorCorrection.r / 255;
+            const gOffset = colorCorrection.g / 255;
+            const bOffset = colorCorrection.b / 255;
+            
+            // Apply channel-specific adjustments using recomb + linear combination
+            // First, split channels, apply offsets, then recombine
+            image = image.recomb([
+                [1, 0, 0], // Red channel
+                [0, 1, 0], // Green channel
+                [0, 0, 1]  // Blue channel
+            ]);
+            
+            // Apply linear transformation with channel-specific offsets
+            // Since Sharp's linear doesn't support per-channel offsets, we use a workaround
+            // We'll use modulate with adjusted factors to simulate the offset effect
+            const rFactor = 1 + (colorCorrection.r / 128); // Adjusted scale factor
+            const gFactor = 1 + (colorCorrection.g / 128);
+            const bFactor = 1 + (colorCorrection.b / 128);
+            
+            image = image.recomb([
+                [rFactor, 0, 0],
+                [0, gFactor, 0],
+                [0, 0, bFactor]
+            ]);
+        }
+
+        // Apply alpha
+        if (colorCorrection.a !== 100) {
+            const alphaValue = colorCorrection.a / 100;
+            image = image.ensureAlpha(alphaValue);
+        }
+
+        // Ensure save directory exists
+        const saveDir = path.dirname(savePath);
+        if (!fs.existsSync(saveDir)) {
+            fs.mkdirSync(saveDir, { recursive: true });
+        }
+
+        // Force JPG format
+        const jpgPath = savePath.replace(/\.[^/.]+$/, '.jpg');
+        await image.jpeg({ quality: 90 }).toFile(jpgPath);
+
+        return { success: true, savedPath: jpgPath };
+    } catch (error) {
+        console.error('Error saving copy with colors:', error);
+        return { success: false, error: error.message };
+    }
 });
 
 // ============================================================================

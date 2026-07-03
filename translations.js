@@ -21,7 +21,7 @@ const translations = {
      * SPANISH (es) - Default language
      ***************************************************************************/
     es: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "Abrir Imágenes",
         transform: "Transformar",
         scale: "Escalar",
@@ -53,8 +53,10 @@ const translations = {
         renameErrors: "Renombrado completado con errores",
         languageLabel: "🌐 Idioma:",
         helpTitle: "Ayuda",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "Visor de imágenes con soporte para múltiples formatos, transformación y conversión.",
+        helpCreator: "Creado por La Tribu de Los Libres.",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "Atajos de teclado:",
         shortcutLeft: "Flecha izquierda: Imagen anterior",
         shortcutRight: "Flecha derecha: Siguiente imagen",
@@ -92,7 +94,7 @@ const translations = {
      * ENGLISH (en)
      ***************************************************************************/
     en: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "Open Images",
         transform: "Transform",
         scale: "Scale",
@@ -124,8 +126,10 @@ const translations = {
         renameErrors: "Rename completed with errors",
         languageLabel: "🌐 Language:",
         helpTitle: "Help",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "Image viewer with support for multiple formats, transformation and conversion.",
+        helpCreator: "Created by La Tribu de Los Libres.",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "Keyboard shortcuts:",
         shortcutLeft: "Left arrow: Previous image",
         shortcutRight: "Right arrow: Next image",
@@ -163,7 +167,7 @@ const translations = {
      * PORTUGUESE (pt)
      ***************************************************************************/
     pt: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "Abrir Imagens",
         transform: "Transformar",
         scale: "Escalar",
@@ -195,8 +199,10 @@ const translations = {
         renameErrors: "Renomeação concluída com erros",
         languageLabel: "🌐 Idioma:",
         helpTitle: "Ajuda",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "Visualizador de imagens com suporte para múltiplos formatos, transformação e conversão.",
+        helpCreator: "Criado por La Tribu de Los Libres.",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "Atalhos de teclado:",
         shortcutLeft: "Seta esquerda: Imagem anterior",
         shortcutRight: "Seta direita: Próxima imagem",
@@ -234,7 +240,7 @@ const translations = {
      * FRENCH (fr)
      ***************************************************************************/
     fr: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "Ouvrir Images",
         transform: "Transformer",
         scale: "Mettre à l'échelle",
@@ -266,8 +272,10 @@ const translations = {
         renameErrors: "Renommage terminé avec des erreurs",
         languageLabel: "🌐 Langue:",
         helpTitle: "Aide",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "Visionneuse d'images avec support pour plusieurs formats, transformation et conversion.",
+        helpCreator: "Créé par La Tribu de Los Libres.",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "Raccourcis clavier:",
         shortcutLeft: "Flèche gauche: Image précédente",
         shortcutRight: "Flèche droite: Image suivante",
@@ -305,7 +313,7 @@ const translations = {
      * GERMAN (de)
      ***************************************************************************/
     de: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "Bilder öffnen",
         transform: "Transformieren",
         scale: "Skalieren",
@@ -337,8 +345,10 @@ const translations = {
         renameErrors: "Umbenennung mit Fehlern abgeschlossen",
         languageLabel: "🌐 Sprache:",
         helpTitle: "Hilfe",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "Bildbetrachter mit Unterstützung für mehrere Formate, Transformation und Konvertierung.",
+        helpCreator: "Erstellt von La Tribu de Los Libres.",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "Tastaturkürzel:",
         shortcutLeft: "Pfeiltaste links: Vorheriges Bild",
         shortcutRight: "Pfeiltaste rechts: Nächstes Bild",
@@ -376,7 +386,7 @@ const translations = {
      * ITALIAN (it)
      ***************************************************************************/
     it: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "Apri Immagini",
         transform: "Trasforma",
         scale: "Ridimensiona",
@@ -408,8 +418,10 @@ const translations = {
         renameErrors: "Rinomina completata con errori",
         languageLabel: "🌐 Lingua:",
         helpTitle: "Aiuto",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "Visualizzatore di immagini con supporto per più formati, trasformazione e conversione.",
+        helpCreator: "Creato da La Tribu de Los Libres.",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "Scorciatoie da tastiera:",
         shortcutLeft: "Freccia sinistra: Immagine precedente",
         shortcutRight: "Freccia destra: Immagine successiva",
@@ -447,7 +459,7 @@ const translations = {
      * RUSSIAN (ru)
      ***************************************************************************/
     ru: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "Открыть изображения",
         transform: "Преобразовать",
         scale: "Масштабировать",
@@ -479,8 +491,10 @@ const translations = {
         renameErrors: "Переименование завершено с ошибками",
         languageLabel: "🌐 Язык:",
         helpTitle: "Справка",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "Просмотрщик изображений с поддержкой множества форматов, преобразования и конвертации.",
+        helpCreator: "Создано La Tribu de Los Libres.",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "Горячие клавиши:",
         shortcutLeft: "Стрелка влево: Предыдущее изображение",
         shortcutRight: "Стрелка вправо: Следующее изображение",
@@ -518,7 +532,7 @@ const translations = {
      * CHINESE (zh)
      ***************************************************************************/
     zh: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "打开图片",
         transform: "转换",
         scale: "缩放",
@@ -550,8 +564,10 @@ const translations = {
         renameErrors: "重命名完成但有错误",
         languageLabel: "🌐 语言:",
         helpTitle: "帮助",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "支持多种格式、转换和转换的图片查看器。",
+        helpCreator: "由 La Tribu de Los Libres 创建。",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "键盘快捷键:",
         shortcutLeft: "左箭头: 上一张图片",
         shortcutRight: "右箭头: 下一张图片",
@@ -589,7 +605,7 @@ const translations = {
      * JAPANESE (ja)
      ***************************************************************************/
     ja: {
-        title: "PMOS Image Viewer",
+        title: "ARIA Image Viewer",
         openImages: "画像を開く",
         transform: "変換",
         scale: "スケール",
@@ -621,8 +637,10 @@ const translations = {
         renameErrors: "名前変更がエラーで完了しました",
         languageLabel: "🌐 言語:",
         helpTitle: "ヘルプ",
-        helpInfoTitle: "PMOS Image Viewer",
+        helpInfoTitle: "ARIA Image Viewer",
         helpInfoDesc: "複数のフォーマット、変換と変換をサポートする画像ビューア。",
+        helpCreator: "La Tribu de Los Libresによって作成されました。",
+        helpEmail: "Email: lthikingcr@gmail.com",
         helpShortcuts: "キーボードショートカット:",
         shortcutLeft: "左矢印: 前の画像",
         shortcutRight: "右矢印: 次の画像",

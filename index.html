@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PMOS Image Viewer</title>
+    <title>ARIA Image Viewer</title>
     <link rel="stylesheet" href="styles.css">
     <script src="translations.js"></script>
 </head>
@@ -41,7 +41,7 @@
         <!-- Sidebar with tools and controls -->
         <div class="sidebar collapsed" id="sidebar">
             <div class="sidebar-header">
-                <h2>PMOS Image Viewer</h2>
+                <h2>ARIA Image Viewer</h2>
             </div>
 
             <!-- Action buttons -->
@@ -54,25 +54,6 @@
                     <span data-i18n="defaultFolder">Carpeta predeterminada:</span>
                     <span id="defaultFolderPath"></span>
                 </div>
-            </div>
-
-            <!-- Language selector -->
-            <div class="language-selector">
-                <label data-i18n="languageLabel">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="language-icon"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
-                    <span data-i18n="languageLabel">Idioma:</span>
-                </label>
-                <select id="languageSelect" class="form-select">
-                    <option value="es">Español</option>
-                    <option value="en">English</option>
-                    <option value="pt">Português</option>
-                    <option value="fr">Français</option>
-                    <option value="de">Deutsch</option>
-                    <option value="it">Italiano</option>
-                    <option value="ru">Русский</option>
-                    <option value="zh">中文</option>
-                    <option value="ja">日本語</option>
-                </select>
             </div>
 
             <!-- Image transformation controls -->
@@ -94,14 +75,6 @@
                     <button class="control-btn" id="scaleBtn" data-i18n="scale">Escalar</button>
                 </div>
 
-                <div class="control-group">
-                    <label data-i18n="rotate">Girar:</label>
-                    <div class="rotate-buttons">
-                        <button class="rotate-btn" data-angle="-90">↺ 90°</button>
-                        <button class="rotate-btn" data-angle="90">↻ 90°</button>
-                        <button class="rotate-btn" data-angle="180">180°</button>
-                    </div>
-                </div>
                 <div class="control-group">
                     <label data-i18n="transform">Transformar:</label>
                     <div class="transform-buttons">
@@ -127,6 +100,55 @@
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                         </button>
                     </div>
+
+                <!-- Color correction controls -->
+                <div class="control-group">
+                    <label data-i18n="colorCorrection">Corrección de Color:</label>
+                    <div class="color-correction-controls">
+                        <div class="slider-control">
+                            <label>R:</label>
+                            <input type="range" id="colorR" min="-100" max="100" value="0" class="slider">
+                            <span id="colorRValue">0</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>G:</label>
+                            <input type="range" id="colorG" min="-100" max="100" value="0" class="slider">
+                            <span id="colorGValue">0</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>B:</label>
+                            <input type="range" id="colorB" min="-100" max="100" value="0" class="slider">
+                            <span id="colorBValue">0</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>A:</label>
+                            <input type="range" id="colorA" min="0" max="100" value="100" class="slider">
+                            <span id="colorAValue">100</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>Contraste:</label>
+                            <input type="range" id="contrast" min="-100" max="100" value="0" class="slider">
+                            <span id="contrastValue">0</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>Blur:</label>
+                            <input type="range" id="blur" min="0" max="20" value="0" class="slider">
+                            <span id="blurValue">0</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>Brillo:</label>
+                            <input type="range" id="brightness" min="-100" max="100" value="0" class="slider">
+                            <span id="brightnessValue">0</span>
+                        </div>
+                        <button class="control-btn" id="resetColorBtn" data-i18n="resetColor">Resetear Colores</button>
+                    </div>
+                </div>
+
+                <!-- Save copy controls -->
+                <div class="control-group">
+                    <label data-i18n="saveCopy">Guardar Copia:</label>
+                    <button class="control-btn" id="saveCopyBtn" data-i18n="saveCopy">Guardar Copia</button>
+                </div>
                 </div>
             </div>
 
@@ -239,12 +261,98 @@
                 </div>
             </div>
 
-            <!-- Help button -->
-            <div class="help-section">
-                <button class="action-btn" id="helpBtn" style="background:#3a3a3a;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="pointer-events:none;vertical-align:middle;margin-right:6px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
-                    <span data-i18n="helpTitle">Ayuda</span>
-                </button>
+            <!-- Help/Shortcuts controls -->
+            <div class="help-controls collapsed" id="helpControls">
+                <div class="section-header" data-target="helpControls" style="cursor: pointer;" onclick="window.toggleSection('helpControls')">
+                    <h3 data-i18n="help" style="cursor: pointer;" onclick="event.stopPropagation(); window.toggleSection('helpControls')">Ayuda</h3>
+                    <button class="section-collapse-btn" data-target="helpControls" onclick="event.stopPropagation(); window.toggleSection('helpControls')">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                    </button>
+                </div>
+
+                <div class="shortcuts-list">
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Flecha izquierda</span>
+                        <span class="shortcut-desc">Imagen anterior</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Flecha derecha</span>
+                        <span class="shortcut-desc">Siguiente imagen</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Scroll</span>
+                        <span class="shortcut-desc">Zoom</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Click central + arrastrar</span>
+                        <span class="shortcut-desc">Desplazar (Pan)</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Doble click</span>
+                        <span class="shortcut-desc">Pantalla completa</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">ESC</span>
+                        <span class="shortcut-desc">Cerrar pantalla completa</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">W</span>
+                        <span class="shortcut-desc">Abrir imágenes de carpeta Pictures</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Shift+O</span>
+                        <span class="shortcut-desc">Abrir diálogo de imágenes</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">D</span>
+                        <span class="shortcut-desc">Colapsar/Expandir sidebar</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Space</span>
+                        <span class="shortcut-desc">Resetear imagen al 100%</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Delete</span>
+                        <span class="shortcut-desc">Eliminar imagen actual</span>
+                    </div>
+                </div>
+                <div class="help-info">
+                    <h4>ARIA Image Viewer</h4>
+                    <p>Visor de imágenes con soporte para múltiples formatos, transformación y conversión.</p>
+                    <p>Creado por La Tribu de Los Libres.</p>
+                    <p>Email: lthikingcr@gmail.com</p>
+                    <h5>Formatos soportados:</h5>
+                    <p>JPG, JPEG, PNG, GIF, WebP, BMP, TIFF, HEIC, HEIF, SVG, ICO</p>
+                    <h5>Características:</h5>
+                    <ul>
+                        <li>Escalado y rotación de imágenes</li>
+                        <li>Conversión entre formatos</li>
+                        <li>Renombrado individual y en masa</li>
+                        <li>Zoom con scroll del mouse</li>
+                        <li>Desplazamiento con click central</li>
+                        <li>Vista de pantalla completa</li>
+                    </ul>
+                </div>
+
+                <!-- Language selector -->
+                <div class="language-selector">
+                    <label data-i18n="languageLabel">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="language-icon"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
+                        <span data-i18n="languageLabel">Idioma:</span>
+                    </label>
+                    <select id="languageSelect" class="form-select">
+                        <option value="auto">🌐 Auto (Sistema)</option>
+                        <option value="es">Español</option>
+                        <option value="en">English</option>
+                        <option value="pt">Português</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
+                        <option value="it">Italiano</option>
+                        <option value="ru">Русский</option>
+                        <option value="zh">中文</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -256,6 +364,11 @@
                     <p data-i18n="noImages">No hay imágenes cargadas</p>
                     <p data-i18n="clickToOpen">Haz clic en "Abrir Imágenes" para comenzar</p>
                 </div>
+
+                <!-- Close image button - top right corner -->
+                <button class="close-image-btn" id="closeImageBtn" style="position: absolute !important; top: 20px !important; right: 20px !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: rgba(255, 107, 53, 0.8) !important; border: 2px solid #ffffff !important; color: white !important; cursor: pointer !important; display: none !important; align-items: center !important; justify-content: center !important; z-index: 9999999 !important; pointer-events: auto !important; font-size: 24px !important; font-weight: bold !important;">
+                    ×
+                </button>
 
                 <!-- Slideshow button - inside imageContainer for fullscreen visibility -->
                 <button class="slideshow-btn" id="slideshowBtn" style="position: absolute !important; bottom: 100px !important; right: 50px !important; width: 50px !important; height: 50px !important; border-radius: 50% !important; background: rgba(255, 107, 53, 0.6) !important; border: 2px solid #ffffff !important; color: white !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 999999 !important; pointer-events: auto !important;">
@@ -296,6 +409,36 @@
     <!-- CRITICAL: DO NOT MODIFY - DOM fullscreen mode controls only -->
     <!-- TERMINANTELY PROHIBITED: Do not switch to window fullscreen mode (mode 2) -->
     <button id="fullscreenCloseBtn" style="position: fixed !important; top: 20px !important; right: 20px !important; width: 40px !important; height: 40px !important; background: rgba(255, 95, 87, 0.8) !important; border: none !important; border-radius: 50% !important; color: white !important; font-size: 24px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; opacity: 0 !important; transition: opacity 0.3s !important; z-index: 999999 !important; pointer-events: auto !important; display: none !important;">&times;</button>
+
+    <!-- ============================================================================
+         MODAL - Reset Color Confirmation
+         ============================================================================
+    -->
+    <div class="modal" id="resetColorModal" style="display: none;">
+        <div class="modal-content">
+            <h2 data-i18n="resetColorConfirm">¿Estás seguro de resetear los colores?</h2>
+            <p data-i18n="resetColorWarning">Perderás todos los cambios de color si no los has guardado.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn" id="cancelResetColorBtn" data-i18n="cancel">Cancelar</button>
+                <button class="modal-btn" id="confirmResetColorBtn" style="background: #ff6b35;" data-i18n="confirm">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================
+         MODAL - Second Confirmation
+         ============================================================================
+    -->
+    <div class="modal" id="resetColorSecondModal" style="display: none;">
+        <div class="modal-content">
+            <h2 data-i18n="resetColorSecondConfirm">¿Realmente estás seguro?</h2>
+            <p data-i18n="resetColorSecondWarning">Esta acción no se puede deshacer.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn" id="cancelResetColorSecondBtn" data-i18n="cancel">Cancelar</button>
+                <button class="modal-btn" id="confirmResetColorSecondBtn" style="background: #ff6b35;" data-i18n="yesReset">Sí, resetear</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ============================================================================
          MODAL - Conversion Progress

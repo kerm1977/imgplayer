@@ -1,9 +1,9 @@
 {
-  "name": "imageviewer-electron",
+  "name": "aria-image-viewer",
   "version": "1.0.0",
-  "description": "Visor de imágenes universal con conversión y edición",
+  "description": "ARIA Image Viewer - Visor de imágenes universal con conversión y edición",
   "main": "main.js",
-  "homepage": "https://github.com/imageviewer/imageviewer-electron",
+  "homepage": "https://github.com/aria/aria-image-viewer",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
@@ -30,8 +30,8 @@
     "sharp": "^0.32.6"
   },
   "build": {
-    "appId": "com.imageviewer.app",
-    "productName": "ImageViewer",
+    "appId": "com.aria.imageviewer",
+    "productName": "ARIA Image Viewer",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -47,7 +47,7 @@
         "rpm"
       ],
       "category": "Graphics",
-      "maintainer": "ImageViewer Team",
+      "maintainer": "ARIA Team",
       "icon": "build",
       "mimeTypes": [
         "image/jpeg",

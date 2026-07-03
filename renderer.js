@@ -16,6 +16,96 @@ const path = require('path');
 const fs = require('fs');
 
 // ============================================================================
+// GLOBAL STATE VARIABLES
+// ============================================================================
+
+// File dialog state (must be declared before use)
+let fileDialogPath = '';
+let fileDialogView = 'list';
+let fileDialogThumbnailSize = 50;
+let fileDialogSelectedFiles = new Set();
+let fileDialogAllFiles = [];
+let defaultImagePath = '';
+
+// Slideshow state
+let slideshowInterval = null;
+let slideshowRunning = false;
+let slideshowFadeTimeout = null;
+let slideshowVisible = true;
+
+// Image buffering system for large images (up to 16k)
+const imageBuffer = {
+    // Cache for image metadata
+    metadataCache: new Map(),
+    
+    // Cache for image previews
+    previewCache: new Map(),
+    
+    // Cache for image tiles
+    tileCache: new Map(),
+    
+    // Maximum cache size (in bytes)
+    maxCacheSize: 500 * 1024 * 1024, // 500MB
+    
+    // Current cache size
+    currentCacheSize: 0,
+    
+    // Clear cache when size exceeds limit
+    clearOldEntries() {
+        while (this.currentCacheSize > this.maxCacheSize * 0.8 && this.tileCache.size > 0) {
+            const firstKey = this.tileCache.keys().next().value;
+            const entry = this.tileCache.get(firstKey);
+            this.currentCacheSize -= entry.size;
+            this.tileCache.delete(firstKey);
+        }
+    },
+    
+    // Add metadata to cache
+    setMetadata(path, metadata) {
+        this.metadataCache.set(path, metadata);
+    },
+    
+    // Get metadata from cache
+    getMetadata(path) {
+        return this.metadataCache.get(path);
+    },
+    
+    // Add preview to cache
+    setPreview(path, buffer, size) {
+        this.clearOldEntries();
+        this.previewCache.set(path, { buffer, size });
+        this.currentCacheSize += size;
+    },
+    
+    // Get preview from cache
+    getPreview(path) {
+        return this.previewCache.get(path);
+    },
+    
+    // Add tile to cache
+    setTile(path, x, y, width, height, buffer, size) {
+        this.clearOldEntries();
+        const key = `${path}_${x}_${y}_${width}_${height}`;
+        this.tileCache.set(key, { buffer, size });
+        this.currentCacheSize += size;
+    },
+    
+    // Get tile from cache
+    getTile(path, x, y, width, height) {
+        const key = `${path}_${x}_${y}_${width}_${height}`;
+        return this.tileCache.get(key);
+    },
+    
+    // Clear all caches
+    clear() {
+        this.metadataCache.clear();
+        this.previewCache.clear();
+        this.tileCache.clear();
+        this.currentCacheSize = 0;
+    }
+};
+
+// ============================================================================
 // DOM ELEMENTS
 // ============================================================================
 
@@ -30,12 +120,24 @@ const collapseBtn = document.getElementById('collapseBtn');
 
 // Action buttons
 const openImagesBtn = document.getElementById('openImagesBtn');
+const closeImageBtn = document.getElementById('closeImageBtn');
 
 // Transform controls
 const scaleWidth = document.getElementById('scaleWidth');
 const scaleHeight = document.getElementById('scaleHeight');
 const scaleBtn = document.getElementById('scaleBtn');
 const rotateButtons = document.querySelectorAll('.rotate-btn');
+
+// Color correction controls
+const colorR = document.getElementById('colorR');
+const colorG = document.getElementById('colorG');
+const colorB = document.getElementById('colorB');
+const colorA = document.getElementById('colorA');
+const contrast = document.getElementById('contrast');
+const blur = document.getElementById('blur');
+const brightness = document.getElementById('brightness');
+const resetColorBtn = document.getElementById('resetColorBtn');
+const saveCopyBtn = document.getElementById('saveCopyBtn');
 
 // Conversion controls
 const targetFormat = document.getElementById('targetFormat');
@@ -65,6 +167,12 @@ const imageCounter = document.getElementById('imageCounter');
 // Modal
 const progressModal = document.getElementById('progressModal');
 const progressMessage = document.getElementById('progressMessage');
+const resetColorModal = document.getElementById('resetColorModal');
+const resetColorSecondModal = document.getElementById('resetColorSecondModal');
+const cancelResetColorBtn = document.getElementById('cancelResetColorBtn');
+const confirmResetColorBtn = document.getElementById('confirmResetColorBtn');
+const cancelResetColorSecondBtn = document.getElementById('cancelResetColorSecondBtn');
+const confirmResetColorSecondBtn = document.getElementById('confirmResetColorSecondBtn');
 
 // ============================================================================
 // STATE
@@ -75,6 +183,20 @@ let currentImageIndex = 0;  // Current image index
 let currentImagePath = null;  // Current image path
 let zoomLevel = 1;  // Current zoom level (1 = 100%)
 let isPanning = false;  // Panning state
+
+// Color correction state
+let colorCorrection = {
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 100,
+    contrast: 0,
+    blur: 0,
+    brightness: 0
+};
+
+// Autosave state
+let unsavedColorCorrections = {}; // Store unsaved color corrections by image path
 let panStartX, panStartY, panTranslateX = 0, panTranslateY = 0;  // Pan coordinates
 let currentLanguage = 'es';  // Current language (default: Spanish)
 let rotation = 0;  // Current rotation in degrees
@@ -173,16 +295,68 @@ window.addEventListener('beforeunload', () => {
 document.querySelectorAll('.section-header h3').forEach(title => {
     title.style.cursor = 'pointer';
     title.addEventListener('click', () => {
-        const section = title.closest('.transform-controls, .conversion-controls, .rename-controls');
+        const section = title.closest('.transform-controls, .conversion-controls, .rename-controls, .help-controls');
         if (section) {
             section.classList.toggle('collapsed');
         }
     });
 });
 
+// Help button toggle
+if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+        const helpControls = document.getElementById('helpControls');
+        if (helpControls) {
+            helpControls.classList.toggle('collapsed');
+        }
+    });
+}
+
 // ============================================================================
 // SETTINGS PERSISTENCE
 // ============================================================================
+
+// Detect system language and map to supported languages
+async function detectSystemLanguage() {
+    try {
+        const systemLocale = await ipcRenderer.invoke('get-system-locale');
+        // Map system locale to our supported languages
+        const localeMap = {
+            'es': 'es',
+            'es-ES': 'es',
+            'es-MX': 'es',
+            'es-AR': 'es',
+            'es-CO': 'es',
+            'es-CL': 'es',
+            'en': 'en',
+            'en-US': 'en',
+            'en-GB': 'en',
+            'pt': 'pt',
+            'pt-BR': 'pt',
+            'pt-PT': 'pt',
+            'fr': 'fr',
+            'fr-FR': 'fr',
+            'de': 'de',
+            'de-DE': 'de',
+            'it': 'it',
+            'it-IT': 'it',
+            'ru': 'ru',
+            'ru-RU': 'ru',
+            'zh': 'zh',
+            'zh-CN': 'zh',
+            'zh-TW': 'zh',
+            'ja': 'ja',
+            'ja-JP': 'ja'
+        };
+        
+        // Extract the language code (first 2 characters) and try to match
+        const langCode = systemLocale.substring(0, 2).toLowerCase();
+        return localeMap[systemLocale] || localeMap[langCode] || 'es'; // Default to Spanish if no match
+    } catch (error) {
+        console.error('Error detecting system language:', error);
+        return 'es'; // Default to Spanish on error
+    }
+}
 
 // Load settings on startup
 async function loadSettings() {
@@ -192,9 +366,23 @@ async function loadSettings() {
         
         // Apply language
         if (settings.language) {
-            currentLanguage = settings.language;
-            languageSelect.value = settings.language;
-            updateLanguage(settings.language);
+            if (settings.language === 'auto') {
+                // Detect system language
+                const detectedLang = await detectSystemLanguage();
+                currentLanguage = detectedLang;
+                languageSelect.value = 'auto';
+                updateLanguage(detectedLang);
+            } else {
+                currentLanguage = settings.language;
+                languageSelect.value = settings.language;
+                updateLanguage(settings.language);
+            }
+        } else {
+            // No language saved, detect system language
+            const detectedLang = await detectSystemLanguage();
+            currentLanguage = detectedLang;
+            languageSelect.value = 'auto';
+            updateLanguage(detectedLang);
         }
         
         // Apply sidebar collapsed state
@@ -297,51 +485,46 @@ function updateLanguage(lang) {
 }
 
 // Language change handler
-languageSelect.addEventListener('change', (e) => {
-    updateLanguage(e.target.value);
+languageSelect.addEventListener('change', async (e) => {
+    const selectedLang = e.target.value;
+    if (selectedLang === 'auto') {
+        // Detect system language
+        const detectedLang = await detectSystemLanguage();
+        currentLanguage = detectedLang;
+        updateLanguage(detectedLang);
+    } else {
+        currentLanguage = selectedLang;
+        updateLanguage(selectedLang);
+    }
     saveSettings();
 });
 
-// Help modal handlers
-helpBtn.addEventListener('click', () => {
-    helpModal.style.display = 'flex';
-});
+// Help modal handlers (removed - help button deleted from UI)
+// helpBtn.addEventListener('click', () => {
+//     helpModal.style.display = 'flex';
+// });
 
-closeHelpBtn.addEventListener('click', () => {
-    helpModal.style.display = 'none';
-});
+// closeHelpBtn.addEventListener('click', () => {
+//     helpModal.style.display = 'none';
+// });
 
 // Close help modal on outside click
-helpModal.addEventListener('click', (e) => {
-    if (e.target === helpModal) {
-        helpModal.style.display = 'none';
-    }
-});
+// helpModal.addEventListener('click', (e) => {
+//     if (e.target === helpModal) {
+//         helpModal.style.display = 'none';
+//     }
+// });
 
 // Close help modal on Escape key
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && helpModal.style.display === 'flex') {
-        helpModal.style.display = 'none';
-    }
-});
+// document.addEventListener('keydown', (e) => {
+//     if (e.key === 'Escape' && helpModal.style.display === 'flex') {
+//         helpModal.style.display = 'none';
+//     }
+// });
 
 // ============================================================================
 // IMAGE LOADING
 // ============================================================================
-
-// File dialog state
-let fileDialogPath = '';
-let fileDialogView = 'list';
-let fileDialogThumbnailSize = 50;
-let fileDialogSelectedFiles = new Set();
-let fileDialogAllFiles = [];
-let defaultImagePath = '';
-
-// Slideshow state
-let slideshowInterval = null;
-let slideshowRunning = false;
-let slideshowFadeTimeout = null;
-let slideshowVisible = true;
 
 // Initialize file dialog overlay
 async function initFileDialog() {
@@ -736,6 +919,8 @@ function closeFileDialog() {
 // Load selected images from dialog
 async function loadSelectedImages(selectedFiles) {
     console.log('loadSelectedImages called with:', selectedFiles);
+    console.log('Previous images array:', images);
+    
     if (selectedFiles && selectedFiles.length > 0) {
         const imageFiles = selectedFiles.filter(file => {
             const ext = file.toLowerCase();
@@ -747,6 +932,11 @@ async function loadSelectedImages(selectedFiles) {
         console.log('Filtered image files:', imageFiles);
         
         if (imageFiles.length > 0) {
+            // Clear previous images to allow loading from different folders
+            images = [];
+            currentImageIndex = 0;
+            currentImagePath = null;
+            
             if (imageFiles.length === 1) {
                 console.log('Single file, getting folder images for:', imageFiles[0]);
                 const folderImages = await ipcRenderer.invoke('get-folder-images', imageFiles[0]);
@@ -778,6 +968,12 @@ async function loadSelectedImages(selectedFiles) {
 
 // Open images dialog
 openImagesBtn.addEventListener('click', async () => {
+    // Remove color overlay to prevent interference with system dialog
+    const colorOverlay = document.getElementById('colorOverlay');
+    if (colorOverlay) {
+        colorOverlay.remove();
+    }
+
     // Show file dialog overlay
     const overlay = document.getElementById('fileDialogOverlay');
     overlay.style.display = 'flex';
@@ -786,18 +982,333 @@ openImagesBtn.addEventListener('click', async () => {
     initFileDialog();
 });
 
+// Close image button
+closeImageBtn.addEventListener('click', () => {
+    // Clear images array
+    images = [];
+    currentImageIndex = 0;
+    currentImagePath = null;
+
+    // Remove current image
+    const img = document.getElementById('currentImage');
+    if (img) {
+        img.remove();
+    }
+
+    // Remove color overlay
+    const colorOverlay = document.getElementById('colorOverlay');
+    if (colorOverlay) {
+        colorOverlay.remove();
+    }
+
+    // Show empty state
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.innerHTML = `
+        <svg viewBox="0 0 24 24" width="64" height="64" fill="#666"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+        <p data-i18n="noImages">No hay imágenes cargadas</p>
+        <p data-i18n="clickToOpen">Haz clic en "Abrir Imágenes" para comenzar</p>
+    `;
+    imageContainer.appendChild(emptyState);
+
+    // Hide navigation and close button
+    document.getElementById('imageNavigation').style.display = 'none';
+    closeImageBtn.style.display = 'none';
+
+    // Reset color correction
+    colorCorrection = {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 100,
+        contrast: 0,
+        blur: 0,
+        brightness: 0
+    };
+
+    colorR.value = 0;
+    colorG.value = 0;
+    colorB.value = 0;
+    colorA.value = 100;
+    contrast.value = 0;
+    blur.value = 0;
+    brightness.value = 0;
+
+    document.getElementById('colorRValue').textContent = '0';
+    document.getElementById('colorGValue').textContent = '0';
+    document.getElementById('colorBValue').textContent = '0';
+    document.getElementById('colorAValue').textContent = '100';
+    document.getElementById('contrastValue').textContent = '0';
+    document.getElementById('blurValue').textContent = '0';
+    document.getElementById('brightnessValue').textContent = '0';
+});
+
+// Mouse movement to show close button
+let closeBtnFadeTimer;
+document.addEventListener('mousemove', () => {
+    if (closeImageBtn && currentImagePath && !isFullscreen) {
+        closeImageBtn.style.display = 'flex';
+        clearTimeout(closeBtnFadeTimer);
+        closeBtnFadeTimer = setTimeout(() => {
+            closeImageBtn.style.display = 'none';
+        }, 3000);
+    }
+});
+
 // CRITICAL: DO NOT MODIFY - Select image folder function
 // TERMINANTELY PROHIBITED: Do not modify this function
 // Opens folder dialog to select image folder (triggered by A key)
 async function selectImageFolder() {
+    // Remove color overlay to prevent interference with system dialog
+    const colorOverlay = document.getElementById('colorOverlay');
+    if (colorOverlay) {
+        colorOverlay.remove();
+    }
+
     const result = await ipcRenderer.invoke('select-image-folder');
     if (result && result.length > 0) {
         loadSelectedImages(result);
     }
 }
 
+// ============================================================================
+// COLOR CORRECTION
+// ============================================================================
+
+// Autosave color correction to localStorage
+function autosaveColorCorrection() {
+    if (currentImagePath) {
+        unsavedColorCorrections[currentImagePath] = { ...colorCorrection };
+        localStorage.setItem('unsavedColorCorrections', JSON.stringify(unsavedColorCorrections));
+    }
+}
+
+// Load autosaved color correction for current image
+function loadAutosavedColorCorrection() {
+    const saved = localStorage.getItem('unsavedColorCorrections');
+    if (saved) {
+        unsavedColorCorrections = JSON.parse(saved);
+        if (currentImagePath && unsavedColorCorrections[currentImagePath]) {
+            const savedCorrection = unsavedColorCorrections[currentImagePath];
+            colorCorrection = { ...savedCorrection };
+
+            // Update UI
+            colorR.value = colorCorrection.r;
+            colorG.value = colorCorrection.g;
+            colorB.value = colorCorrection.b;
+            colorA.value = colorCorrection.a;
+            contrast.value = colorCorrection.contrast;
+            blur.value = colorCorrection.blur;
+            brightness.value = colorCorrection.brightness;
+
+            document.getElementById('colorRValue').textContent = colorCorrection.r;
+            document.getElementById('colorGValue').textContent = colorCorrection.g;
+            document.getElementById('colorBValue').textContent = colorCorrection.b;
+            document.getElementById('colorAValue').textContent = colorCorrection.a;
+            document.getElementById('contrastValue').textContent = colorCorrection.contrast;
+            document.getElementById('blurValue').textContent = colorCorrection.blur;
+            document.getElementById('brightnessValue').textContent = colorCorrection.brightness;
+
+            applyColorCorrection();
+        }
+    }
+}
+
+// Apply color correction to current image
+function applyColorCorrection() {
+    const img = document.getElementById('currentImage');
+    if (!img) return;
+
+    const r = colorCorrection.r;
+    const g = colorCorrection.g;
+    const b = colorCorrection.b;
+    const a = colorCorrection.a / 100;
+    const contrast = colorCorrection.contrast;
+    const blur = colorCorrection.blur;
+    const brightness = colorCorrection.brightness;
+
+    // Apply CSS filters
+    const filterString = `brightness(${1 + brightness / 100}) contrast(${1 + contrast / 100}) blur(${blur}px)`;
+    img.style.filter = filterString;
+
+    // Apply RGBA tint using SVG filter approach
+    if (r !== 0 || g !== 0 || b !== 0) {
+        const svgFilter = `
+            <svg xmlns="http://www.w3.org/2000/svg">
+                <filter id="colorTint">
+                    <feColorMatrix type="matrix" values="
+                        1 0 0 0 ${r/255}
+                        0 1 0 0 ${g/255}
+                        0 0 1 0 ${b/255}
+                        0 0 0 1 0
+                    "/>
+                </filter>
+            </svg>
+        `;
+        let svgElement = document.getElementById('colorFilterSvg');
+        if (!svgElement) {
+            svgElement = document.createElement('div');
+            svgElement.id = 'colorFilterSvg';
+            svgElement.style.display = 'none';
+            document.body.appendChild(svgElement);
+        }
+        svgElement.innerHTML = svgFilter;
+        img.style.filter = filterString + ' url(#colorTint)';
+    } else {
+        img.style.filter = filterString;
+    }
+}
+
+// Color correction event listeners
+colorR.addEventListener('input', (e) => {
+    colorCorrection.r = parseInt(e.target.value);
+    document.getElementById('colorRValue').textContent = e.target.value;
+    applyColorCorrection();
+    autosaveColorCorrection();
+});
+
+colorG.addEventListener('input', (e) => {
+    colorCorrection.g = parseInt(e.target.value);
+    document.getElementById('colorGValue').textContent = e.target.value;
+    applyColorCorrection();
+    autosaveColorCorrection();
+});
+
+colorB.addEventListener('input', (e) => {
+    colorCorrection.b = parseInt(e.target.value);
+    document.getElementById('colorBValue').textContent = e.target.value;
+    applyColorCorrection();
+    autosaveColorCorrection();
+});
+
+colorA.addEventListener('input', (e) => {
+    colorCorrection.a = parseInt(e.target.value);
+    document.getElementById('colorAValue').textContent = e.target.value;
+    applyColorCorrection();
+    autosaveColorCorrection();
+});
+
+contrast.addEventListener('input', (e) => {
+    colorCorrection.contrast = parseInt(e.target.value);
+    document.getElementById('contrastValue').textContent = e.target.value;
+    applyColorCorrection();
+    autosaveColorCorrection();
+});
+
+blur.addEventListener('input', (e) => {
+    colorCorrection.blur = parseInt(e.target.value);
+    document.getElementById('blurValue').textContent = e.target.value;
+    applyColorCorrection();
+    autosaveColorCorrection();
+});
+
+brightness.addEventListener('input', (e) => {
+    colorCorrection.brightness = parseInt(e.target.value);
+    document.getElementById('brightnessValue').textContent = e.target.value;
+    applyColorCorrection();
+    autosaveColorCorrection();
+});
+
+// Reset color confirmation modals
+resetColorBtn.addEventListener('click', () => {
+    resetColorModal.style.display = 'flex';
+});
+
+cancelResetColorBtn.addEventListener('click', () => {
+    resetColorModal.style.display = 'none';
+});
+
+confirmResetColorBtn.addEventListener('click', () => {
+    resetColorModal.style.display = 'none';
+    resetColorSecondModal.style.display = 'flex';
+});
+
+cancelResetColorSecondBtn.addEventListener('click', () => {
+    resetColorSecondModal.style.display = 'none';
+});
+
+confirmResetColorSecondBtn.addEventListener('click', () => {
+    resetColorSecondModal.style.display = 'none';
+
+    colorCorrection = {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 100,
+        contrast: 0,
+        blur: 0,
+        brightness: 0
+    };
+
+    colorR.value = 0;
+    colorG.value = 0;
+    colorB.value = 0;
+    colorA.value = 100;
+    contrast.value = 0;
+    blur.value = 0;
+    brightness.value = 0;
+
+    document.getElementById('colorRValue').textContent = '0';
+    document.getElementById('colorGValue').textContent = '0';
+    document.getElementById('colorBValue').textContent = '0';
+    document.getElementById('colorAValue').textContent = '100';
+    document.getElementById('contrastValue').textContent = '0';
+    document.getElementById('blurValue').textContent = '0';
+    document.getElementById('brightnessValue').textContent = '0';
+
+    // Remove SVG filter
+    const svgElement = document.getElementById('colorFilterSvg');
+    if (svgElement) {
+        svgElement.remove();
+    }
+
+    applyColorCorrection();
+});
+
+// Save copy with color correction
+saveCopyBtn.addEventListener('click', async () => {
+    if (!currentImagePath) {
+        alert('No hay imagen cargada');
+        return;
+    }
+
+    // Open save dialog
+    const result = await ipcRenderer.invoke('select-save-path');
+    if (!result) {
+        return; // User canceled
+    }
+
+    // Send request to main process to save copy with color correction
+    const saveResult = await ipcRenderer.invoke('save-copy-with-colors', {
+        sourcePath: currentImagePath,
+        savePath: result,
+        colorCorrection: colorCorrection
+    });
+
+    if (saveResult.success) {
+        alert('Copia guardada exitosamente');
+        // Clear autosaved correction for this image since it was saved
+        delete unsavedColorCorrections[currentImagePath];
+        localStorage.setItem('unsavedColorCorrections', JSON.stringify(unsavedColorCorrections));
+
+        // Add saved image to images array so it appears in the viewer
+        if (saveResult.savedPath) {
+            const savedIndex = images.indexOf(saveResult.savedPath);
+            if (savedIndex === -1) {
+                // Insert saved image right after current image
+                images.splice(currentImageIndex + 1, 0, saveResult.savedPath);
+                // Update current index to point to the saved image
+                currentImageIndex++;
+                displayImage(currentImageIndex);
+            }
+        }
+    } else {
+        alert('Error al guardar copia: ' + saveResult.error);
+    }
+});
+
 // Display image at specified index
-function displayImage(index, forceReload = false) {
+async function displayImage(index, forceReload = false) {
     if (index < 0 || index >= images.length) return;
     
     currentImageIndex = index;
@@ -825,18 +1336,75 @@ function displayImage(index, forceReload = false) {
         emptyState.remove();
     }
     
+    // Check if image is large using metadata
+    let metadata = imageBuffer.getMetadata(currentImagePath);
+    if (!metadata) {
+        const metaResult = await ipcRenderer.invoke('get-image-metadata', currentImagePath);
+        if (metaResult.success) {
+            metadata = metaResult;
+            imageBuffer.setMetadata(currentImagePath, metadata);
+        }
+    }
+    
     // Create image element
     const img = document.createElement('img');
-    // Add timestamp to force reload when forceReload is true
-    const timestamp = forceReload ? `?t=${Date.now()}` : '';
-    img.src = `file://${currentImagePath}${timestamp}`;
     img.alt = 'Image';
     img.id = 'currentImage';
     
+    // For large images (over 4k), use preview system
+    if (metadata && metadata.isLarge) {
+        // Try to get cached preview
+        let previewData = imageBuffer.getPreview(currentImagePath);
+        
+        if (!previewData || forceReload) {
+            // Generate preview
+            const previewResult = await ipcRenderer.invoke('generate-image-preview', currentImagePath);
+            if (previewResult.success) {
+                const buffer = Buffer.from(previewResult.buffer);
+                const blob = new Blob([buffer], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+                
+                img.src = url;
+                img.dataset.isPreview = 'true';
+                img.dataset.originalWidth = metadata.width;
+                img.dataset.originalHeight = metadata.height;
+                
+                // Cache the preview
+                imageBuffer.setPreview(currentImagePath, buffer, buffer.length);
+            } else {
+                // Fallback to direct load
+                const timestamp = forceReload ? `?t=${Date.now()}` : '';
+                img.src = `file://${currentImagePath}${timestamp}`;
+            }
+        } else {
+            // Use cached preview
+            const buffer = Buffer.from(previewData.buffer);
+            const blob = new Blob([buffer], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            
+            img.src = url;
+            img.dataset.isPreview = 'true';
+            img.dataset.originalWidth = metadata.width;
+            img.dataset.originalHeight = metadata.height;
+        }
+    } else {
+        // Normal image - load directly
+        const timestamp = forceReload ? `?t=${Date.now()}` : '';
+        img.src = `file://${currentImagePath}${timestamp}`;
+    }
+    
     img.onload = () => {
+        // Load autosaved color correction for this image
+        loadAutosavedColorCorrection();
+
         // Update scale inputs with current dimensions
-        scaleWidth.value = img.naturalWidth;
-        scaleHeight.value = img.naturalHeight;
+        if (img.dataset.isPreview === 'true') {
+            scaleWidth.value = img.dataset.originalWidth;
+            scaleHeight.value = img.dataset.originalHeight;
+        } else {
+            scaleWidth.value = img.naturalWidth;
+            scaleHeight.value = img.naturalHeight;
+        }
     };
     
     img.onerror = () => {
@@ -885,6 +1453,11 @@ function displayImage(index, forceReload = false) {
             stopSlideshow();
         }
     }
+
+    // Show close image button
+    if (closeImageBtn) {
+        closeImageBtn.style.display = 'flex';
+    }
 }
 
 // ============================================================================
@@ -916,28 +1489,72 @@ nextImageBtn.addEventListener('click', (e) => {
 
 // Keyboard navigation
 document.addEventListener('keydown', (e) => {
-    // CRITICAL: DO NOT MODIFY - Shift+A opens image dialog
-    // TERMINANTELY PROHIBITED: Do not change Shift+A behavior
-    // Shift+A opens "Abrir Imágenes" dialog (same as openImagesBtn)
-    if (e.shiftKey && (e.key === 'a' || e.key === 'A')) {
-        e.preventDefault();
-        openImagesBtn.click();
+    // Check if focus is in an input field (compressor inputs, etc.)
+    const activeElement = document.activeElement;
+    const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.getAttribute('contenteditable') === 'true'
+    );
+
+    // If focused in input, don't execute keyboard shortcuts
+    if (isInputFocused) {
         return;
     }
 
-    // CRITICAL: DO NOT MODIFY - A opens folder dialog
-    // TERMINANTELY PROHIBITED: Do not change A behavior
-    // A opens folder dialog to select image folder
-    if (!e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+    // CRITICAL: DO NOT MODIFY - W opens folder dialog
+    // TERMINANTELY PROHIBITED: Do not change W behavior
+    // W key opens folder dialog to select image folder
+    if (e.key === 'w' || e.key === 'W') {
         e.preventDefault();
         selectImageFolder();
         return;
     }
 
-    // CRITICAL: DO NOT MODIFY - C key toggles sidebar collapse
-    // TERMINANTELY PROHIBITED: Do not change C key behavior
-    // C key toggles sidebar collapse/expand (same as collapse button)
-    if (e.key === 'c' || e.key === 'C') {
+    // CRITICAL: DO NOT MODIFY - Shift+O opens image dialog
+    // TERMINANTELY PROHIBITED: Do not change Shift+O behavior
+    // Shift+O opens "Abrir Imágenes" dialog (same as openImagesBtn)
+    if (e.shiftKey && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault();
+        openImagesBtn.click();
+        return;
+    }
+
+    // CRITICAL: DO NOT MODIFY - O opens folder dialog
+    // TERMINANTELY PROHIBITED: Do not change O behavior
+    // O opens folder dialog to select image folder
+    if (!e.shiftKey && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault();
+        selectImageFolder();
+        return;
+    }
+
+    // CRITICAL: DO NOT MODIFY - S navigates to next image (right)
+    // TERMINANTELY PROHIBITED: Do not change S behavior
+    // S key navigates to next image in viewer mode
+    if ((e.key === 's' || e.key === 'S') && currentImagePath && !isFullscreen) {
+        e.preventDefault();
+        if (currentImageIndex < images.length - 1) {
+            displayImage(currentImageIndex + 1);
+        }
+        return;
+    }
+
+    // CRITICAL: DO NOT MODIFY - A navigates to previous image (left)
+    // TERMINANTELY PROHIBITED: Do not change A behavior
+    // A key navigates to previous image in viewer mode
+    if ((e.key === 'a' || e.key === 'A') && currentImagePath && !isFullscreen) {
+        e.preventDefault();
+        if (currentImageIndex > 0) {
+            displayImage(currentImageIndex - 1);
+        }
+        return;
+    }
+
+    // CRITICAL: DO NOT MODIFY - D key toggles sidebar collapse
+    // TERMINANTELY PROHIBITED: Do not change D key behavior
+    // D key toggles sidebar collapse/expand (same as collapse button)
+    if (e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         sidebar.classList.toggle('collapsed');
         const mainContainer = document.querySelector('.main-container');
@@ -998,6 +1615,14 @@ document.addEventListener('keydown', (e) => {
             displayImage(currentImageIndex - 1);
             return;
         } else if (e.key === 'ArrowRight' && currentImageIndex < images.length - 1) {
+            e.preventDefault();
+            displayImage(currentImageIndex + 1);
+            return;
+        } else if ((e.key === 'a' || e.key === 'A') && currentImageIndex > 0) {
+            e.preventDefault();
+            displayImage(currentImageIndex - 1);
+            return;
+        } else if ((e.key === 's' || e.key === 'S') && currentImageIndex < images.length - 1) {
             e.preventDefault();
             displayImage(currentImageIndex + 1);
             return;
@@ -1140,6 +1765,10 @@ function enterFullscreen() {
             console.log('Error entering fullscreen:', err);
         });
         isFullscreen = true;
+        // Hide close button in fullscreen
+        if (closeImageBtn) {
+            closeImageBtn.style.display = 'none';
+        }
     }
 }
 
@@ -1148,6 +1777,10 @@ function exitFullscreen() {
     if (document.fullscreenElement) {
         document.exitFullscreen();
         isFullscreen = false;
+        // Show close button when exiting fullscreen
+        if (closeImageBtn && currentImagePath) {
+            closeImageBtn.style.display = 'flex';
+        }
     }
 }
 
@@ -1175,6 +1808,15 @@ document.addEventListener('fullscreenchange', () => {
         } else {
             fullscreenSlideshowBtn.style.display = 'none';
             fullscreenCloseBtn.style.display = 'none';
+        }
+    }
+
+    // Hide close image button in fullscreen, show in viewer mode
+    if (closeImageBtn) {
+        if (isFullscreen) {
+            closeImageBtn.style.display = 'none';
+        } else if (currentImagePath) {
+            closeImageBtn.style.display = 'flex';
         }
     }
 });

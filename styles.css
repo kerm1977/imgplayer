@@ -792,6 +792,72 @@ body {
     margin-bottom: 20px;
 }
 
+/* Help controls */
+.help-controls {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.shortcuts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #1a1a1a;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.shortcut-key {
+    background: #3a3a3a;
+    color: #ff6b35;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-weight: bold;
+    min-width: 80px;
+    text-align: center;
+}
+
+.shortcut-desc {
+    color: #b0b0b0;
+    text-align: right;
+    flex: 1;
+    margin-left: 12px;
+}
+
+/* Section collapse behavior */
+.transform-controls.collapsed > div:not(.section-header),
+.conversion-controls.collapsed > div:not(.section-header),
+.rename-controls.collapsed > div:not(.section-header),
+.compressor-controls.collapsed > div:not(.section-header),
+.help-controls.collapsed > div:not(.section-header) {
+    display: none;
+}
+
+/* Add spacing between color correction and save copy */
+.transform-controls .control-group:nth-last-child(2) {
+    margin-bottom: 50px;
+    margin-top: 10px;
+}
+
+.transform-controls.collapsed .section-collapse-btn svg,
+.conversion-controls.collapsed .section-collapse-btn svg,
+.rename-controls.collapsed .section-collapse-btn svg,
+.compressor-controls.collapsed .section-collapse-btn svg,
+.help-controls.collapsed .section-collapse-btn svg {
+    transform: rotate(-90deg);
+}
+
 /* Help modal */
 .help-modal-content {
     max-width: 600px;
@@ -820,6 +886,42 @@ body {
     color: #b0b0b0;
     margin-bottom: 10px;
     line-height: 1.5;
+}
+
+/* Help info section in sidebar */
+.help-info {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #3a3a3a;
+}
+
+.help-info h4 {
+    color: #ff6b35;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.help-info h5 {
+    color: #ccc;
+    margin: 15px 0 5px 0;
+    font-size: 14px;
+}
+
+.help-info p {
+    color: #999;
+    margin: 5px 0;
+    font-size: 13px;
+}
+
+.help-info ul {
+    color: #999;
+    margin: 5px 0;
+    padding-left: 20px;
+    font-size: 13px;
+}
+
+.help-info li {
+    margin: 3px 0;
 }
 
 .help-modal-body ul {
@@ -943,6 +1045,73 @@ body {
     font-size: 12px;
     color: #b0b0b0;
     margin-bottom: 6px;
+}
+
+/* Color correction controls */
+.color-correction-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.slider-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.slider-control label {
+    min-width: 20px;
+    font-size: 11px;
+    color: #b0b0b0;
+    margin-bottom: 0;
+}
+
+.slider-control .slider {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    background: #3a3a3a;
+    border-radius: 2px;
+    outline: none;
+}
+
+.slider-control .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #ff6b35;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.slider-control .slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #ff6b35;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.slider-control span {
+    min-width: 30px;
+    font-size: 11px;
+    color: #b0b0b0;
+    text-align: right;
+}
+
+/* Hide close image button in fullscreen */
+#imageContainer:fullscreen .close-image-btn {
+    display: none !important;
+}
+
+#imageContainer:-webkit-full-screen .close-image-btn {
+    display: none !important;
+}
+
+#imageContainer:-moz-full-screen .close-image-btn {
+    display: none !important;
 }
 
 /* Scale inputs */
