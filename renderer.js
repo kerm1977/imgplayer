@@ -197,6 +197,7 @@ let colorCorrection = {
 
 // Autosave state
 let unsavedColorCorrections = {}; // Store unsaved color corrections by image path
+let imageReloadCounter = 0; // Counter for image reloads to avoid cache
 let panStartX, panStartY, panTranslateX = 0, panTranslateY = 0;  // Pan coordinates
 let currentLanguage = 'es';  // Current language (default: Spanish)
 let rotation = 0;  // Current rotation in degrees
@@ -1389,11 +1390,19 @@ async function displayImage(index, forceReload = false) {
         }
     } else {
         // Normal image - load directly
-        const timestamp = forceReload ? `?t=${Date.now()}` : '';
+        // Use counter to avoid cache without using large timestamps
+        imageReloadCounter++;
+        const timestamp = `?v=${imageReloadCounter}`;
         img.src = `file://${currentImagePath}${timestamp}`;
     }
     
     img.onload = () => {
+        // Reset transformations since they're already in the file
+        rotation = 0;
+        flipHorizontal = false;
+        flipVertical = false;
+        applyTransformations();
+
         // Load autosaved color correction for this image
         loadAutosavedColorCorrection();
 
@@ -1408,9 +1417,12 @@ async function displayImage(index, forceReload = false) {
     };
     
     img.onerror = () => {
+        console.error('Error loading image:', currentImagePath);
+        console.error('Image src:', img.src);
         imageContainer.innerHTML = `
             <div class="empty-state">
                 <p>Error al cargar la imagen</p>
+                <p style="font-size: 12px; color: #666;">${currentImagePath}</p>
             </div>
         `;
     };
@@ -1651,17 +1663,13 @@ document.addEventListener('keydown', (e) => {
         } else if (e.key === 'ArrowDown' && !e.shiftKey) {
             rotateDown();
         } else if (e.key === 'ArrowRight' && e.shiftKey) {
-            flipHorizontal = !flipHorizontal;
-            applyTransformations();
+            flipHorizontalToggle();
         } else if (e.key === 'ArrowLeft' && e.shiftKey) {
-            flipHorizontal = !flipHorizontal;
-            applyTransformations();
+            flipHorizontalToggle();
         } else if (e.key === 'ArrowUp' && e.shiftKey) {
-            flipVertical = !flipVertical;
-            applyTransformations();
+            flipVerticalToggle();
         } else if (e.key === 'ArrowDown' && e.shiftKey) {
-            flipVertical = !flipVertical;
-            applyTransformations();
+            flipVerticalToggle();
         }
     }
 });
@@ -1671,39 +1679,86 @@ document.addEventListener('keydown', (e) => {
 // ============================================================================
 
 // Rotate image right (90 degrees clockwise)
-function rotateRight() {
+async function rotateRight() {
     rotation = (rotation + 90) % 360;
     applyTransformations();
+    await saveTransformations();
 }
 
 // Rotate image left (90 degrees counter-clockwise)
-function rotateLeft() {
+async function rotateLeft() {
     rotation = (rotation - 90) % 360;
     if (rotation < 0) rotation += 360;
     applyTransformations();
+    await saveTransformations();
 }
 
 // Rotate image up (180 degrees vertical flip)
-function rotateUp() {
+async function rotateUp() {
     rotation = (rotation + 180) % 360;
     applyTransformations();
+    await saveTransformations();
 }
 
 // Rotate image down (180 degrees vertical flip)
-function rotateDown() {
+async function rotateDown() {
     rotation = (rotation + 180) % 360;
     applyTransformations();
+    await saveTransformations();
+}
+
+// Flip image horizontally
+async function flipHorizontalToggle() {
+    flipHorizontal = !flipHorizontal;
+    applyTransformations();
+    await saveTransformations();
+}
+
+// Flip image vertically
+async function flipVerticalToggle() {
+    flipVertical = !flipVertical;
+    applyTransformations();
+    await saveTransformations();
 }
 
 // Apply transformations to current image
 function applyTransformations() {
     const img = document.getElementById('currentImage');
     if (!img) return;
-    
+
     const scaleX = flipHorizontal ? -1 : 1;
     const scaleY = flipVertical ? -1 : 1;
-    
+
     img.style.transform = `rotate(${rotation}deg) scaleX(${scaleX}) scaleY(${scaleY})`;
+}
+
+// Save transformations to original file
+async function saveTransformations() {
+    if (!currentImagePath) return;
+
+    try {
+        const result = await ipcRenderer.invoke('save-transformed-image', currentImagePath, rotation, flipHorizontal, flipVertical);
+        if (result.success) {
+            console.log('Image saved successfully');
+            // Reset transformations after saving since they're now in the file
+            rotation = 0;
+            flipHorizontal = false;
+            flipVertical = false;
+            applyTransformations();
+            // Reload the image with a small delay to ensure file is fully written
+            setTimeout(() => {
+                const img = document.getElementById('currentImage');
+                if (img) {
+                    imageReloadCounter++;
+                    img.src = `file://${currentImagePath}?v=${imageReloadCounter}`;
+                }
+            }, 100);
+        } else {
+            console.error('Error saving image:', result.error);
+        }
+    } catch (error) {
+        console.error('Error saving transformations:', error);
+    }
 }
 
 // Reset transformations

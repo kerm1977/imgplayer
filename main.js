@@ -57,6 +57,64 @@ function saveSettingsToFile(settings) {
 let mainWindow;
 
 // ============================================================================
+// IMAGE TRANSFORMATION HELPERS
+// ============================================================================
+
+// Save transformed image to original file
+async function saveTransformedImage(imagePath, rotation, flipHorizontal, flipVertical) {
+    try {
+        const tempPath = imagePath + '.tmp';
+        let sharpInstance = sharp(imagePath);
+
+        // Get original metadata to preserve format
+        const metadata = await sharpInstance.metadata();
+        const originalFormat = metadata.format;
+
+        // Apply rotation
+        if (rotation !== 0) {
+            sharpInstance = sharpInstance.rotate(rotation);
+        }
+
+        // Apply flip
+        if (flipHorizontal || flipVertical) {
+            sharpInstance = sharpInstance.flop(flipHorizontal).flip(flipVertical);
+        }
+
+        // Save to temporary file with original format
+        const outputOptions = {};
+        if (originalFormat === 'jpeg' || originalFormat === 'jpg') {
+            outputOptions.format = 'jpeg';
+            outputOptions.quality = metadata.quality || 90;
+        } else if (originalFormat === 'png') {
+            outputOptions.format = 'png';
+            outputOptions.compressionLevel = 9;
+        } else if (originalFormat === 'webp') {
+            outputOptions.format = 'webp';
+            outputOptions.quality = metadata.quality || 90;
+        } else if (originalFormat === 'tiff' || originalFormat === 'tif') {
+            outputOptions.format = 'tiff';
+        } else if (originalFormat === 'bmp') {
+            outputOptions.format = 'bmp';
+        } else {
+            // Default to jpeg for unknown formats
+            outputOptions.format = 'jpeg';
+            outputOptions.quality = 90;
+        }
+
+        await sharpInstance.toFile(tempPath, outputOptions);
+
+        // Replace original file with temporary file
+        fs.copyFileSync(tempPath, imagePath);
+        fs.unlinkSync(tempPath);
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving transformed image:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================================================
 // WINDOW CREATION AND LIFECYCLE
 // ============================================================================
 
@@ -358,6 +416,17 @@ ipcMain.handle('get-folder-images', async (event, imagePath) => {
     }
 });
 
+// IPC handler for saving transformed image to original file
+// Parameters:
+//   - imagePath: Path to the image file
+//   - rotation: Rotation angle in degrees
+//   - flipHorizontal: Horizontal flip state
+//   - flipVertical: Vertical flip state
+// Returns: Success status
+ipcMain.handle('save-transformed-image', async (event, imagePath, rotation, flipHorizontal, flipVertical) => {
+    return await saveTransformedImage(imagePath, rotation, flipHorizontal, flipVertical);
+});
+
 // IPC handler for renaming a single file
 // Parameters:
 //   - oldPath: Current file path
@@ -562,8 +631,12 @@ ipcMain.handle('save-copy-with-colors', async (event, data) => {
         // Load image
         let image = sharp(sourcePath);
 
-        // Apply color correction using sharp
+        // Get original format and extension
         const metadata = await image.metadata();
+        const originalFormat = metadata.format;
+        const originalExt = path.extname(sourcePath);
+
+        // Apply color correction using sharp
 
         // Apply brightness
         if (colorCorrection.brightness !== 0) {
@@ -589,7 +662,7 @@ ipcMain.handle('save-copy-with-colors', async (event, data) => {
             const rOffset = colorCorrection.r / 255;
             const gOffset = colorCorrection.g / 255;
             const bOffset = colorCorrection.b / 255;
-            
+
             // Apply channel-specific adjustments using recomb + linear combination
             // First, split channels, apply offsets, then recombine
             image = image.recomb([
@@ -597,14 +670,14 @@ ipcMain.handle('save-copy-with-colors', async (event, data) => {
                 [0, 1, 0], // Green channel
                 [0, 0, 1]  // Blue channel
             ]);
-            
+
             // Apply linear transformation with channel-specific offsets
             // Since Sharp's linear doesn't support per-channel offsets, we use a workaround
             // We'll use modulate with adjusted factors to simulate the offset effect
             const rFactor = 1 + (colorCorrection.r / 128); // Adjusted scale factor
             const gFactor = 1 + (colorCorrection.g / 128);
             const bFactor = 1 + (colorCorrection.b / 128);
-            
+
             image = image.recomb([
                 [rFactor, 0, 0],
                 [0, gFactor, 0],
@@ -624,11 +697,33 @@ ipcMain.handle('save-copy-with-colors', async (event, data) => {
             fs.mkdirSync(saveDir, { recursive: true });
         }
 
-        // Force JPG format
-        const jpgPath = savePath.replace(/\.[^/.]+$/, '.jpg');
-        await image.jpeg({ quality: 90 }).toFile(jpgPath);
+        // Save in original format with original extension
+        const finalPath = savePath.replace(/\.[^/.]+$/, '') + originalExt;
+        switch (originalFormat) {
+            case 'jpeg':
+            case 'jpg':
+                await image.jpeg({ quality: metadata.quality || 90 }).toFile(finalPath);
+                break;
+            case 'png':
+                await image.png({ compressionLevel: 9 }).toFile(finalPath);
+                break;
+            case 'webp':
+                await image.webp({ quality: metadata.quality || 90 }).toFile(finalPath);
+                break;
+            case 'gif':
+                await image.gif().toFile(finalPath);
+                break;
+            case 'bmp':
+                await image.bmp().toFile(finalPath);
+                break;
+            case 'tiff':
+                await image.tiff().toFile(finalPath);
+                break;
+            default:
+                await image.jpeg({ quality: 90 }).toFile(finalPath);
+        }
 
-        return { success: true, savedPath: jpgPath };
+        return { success: true, savedPath: finalPath };
     } catch (error) {
         console.error('Error saving copy with colors:', error);
         return { success: false, error: error.message };
