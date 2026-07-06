@@ -1,0 +1,520 @@
+/* ============================================================================
+   IMAGE VIEWER ELECTRON - STYLES
+   ============================================================================
+   Styles for the image viewer application.
+   Theme: Dark gradient background with orange accent (#ff6b35)
+   Language: Spanish (default, but supports 9 languages via translations.js)
+*/
+
+/* ============================================================================
+   CSS VARIABLES
+   ============================================================================
+   Theme colors and styling variables for consistent theming.
+*/
+:root {
+    /* Dark theme (default) */
+    --bg-dark: #0d0d0d;
+    --bg-darker: #0a0a0a;
+    --bg-card: #1a1a1a;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent: #ff6b35;
+    --accent-hover: #ff8c5a;
+    --success: #00e676;
+    --error: #ff5252;
+    --warning: #ffab40;
+    --border: #333333;
+    --input-bg: #2e2e2e;
+    --button-bg: #3a3a3a;
+    --button-hover: #4a4a4a;
+}
+
+/* Light theme - pastel colors like the compressor */
+body.light-theme {
+    --bg-dark: #f8f4f8;
+    --bg-darker: #f0e8f0;
+    --bg-card: #ffffff;
+    --text-primary: #4a4a4a;
+    --text-secondary: #888888;
+    --accent: #e91e63;
+    --accent-hover: #c2185b;
+    --success: #81c784;
+    --error: #e57373;
+    --warning: #ffb74d;
+    --border: #e0e0e0;
+    --input-bg: #f5f5f5;
+    --button-bg: #f5f5f5;
+    --button-hover: #eeeeee;
+}
+
+/* ============================================================================
+   BODY
+   ============================================================================
+   Main body styling with gradient background.
+*/
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-card) 100%);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px var(--bg-darker) inset;
+}
+
+/* ============================================================================
+   DRAG STRIP
+   ============================================================================
+   Custom title bar for frameless window.
+*/
+.drag-strip {
+    height: 28px;
+    background: var(--bg-darker);
+    -webkit-app-region: drag;
+    flex-shrink: 0;
+    border-radius: 14px 14px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+}
+
+.window-title {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: 1px;
+    user-select: none;
+}
+
+/* Window controls container */
+.window-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: 4px;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    background: var(--button-bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s;
+    color: var(--text-primary);
+    -webkit-app-region: no-drag;
+}
+
+.theme-toggle:hover {
+    background: var(--button-hover);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Window control buttons - macOS-style circular buttons */
+.win-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: color 0.15s, opacity 0.15s;
+    padding: 0;
+    line-height: 1;
+    -webkit-app-region: no-drag;
+}
+
+.win-btn:hover {
+    color: rgba(0,0,0,0.7);
+}
+
+.win-minimize {
+    background: #f5c400;
+}
+
+.win-maximize {
+    background: #28c840;
+}
+
+.win-close {
+    background: #ff5f57;
+}
+
+/* ============================================================================
+   SEARCH BAR
+   ============================================================================
+   Search input field for filtering images.
+*/
+.search-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+}
+
+.search-input {
+    flex: 1;
+    max-width: 420px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.search-input:focus {
+    border-color: var(--accent);
+}
+
+.search-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.search-info {
+    color: var(--text-secondary);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.help-btn-top {
+    background: var(--button-bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s, border-color 0.3s;
+    flex-shrink: 0;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.help-btn-top:hover {
+    background: var(--button-hover);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ============================================================================
+   MAIN CONTAINER
+   ============================================================================
+   Main application area with image viewer and controls.
+*/
+.main-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+}
+
+/* Image viewer area */
+.image-viewer {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--bg-darker);
+    position: relative;
+}
+
+.no-image {
+    color: var(--text-secondary);
+    font-size: 18px;
+    text-align: center;
+}
+
+/* Image info panel */
+.image-info-panel {
+    width: 280px;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.info-header {
+    padding: 15px;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.info-content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+/* Fullscreen modal */
+.fullscreen-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000000;
+    z-index: 99999;
+    display: none;
+}
+
+.fullscreen-modal.show {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.fullscreen-image-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.fullscreen-image-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    cursor: grab;
+}
+
+.fullscreen-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10001;
+    color: var(--text-primary);
+    transition: background 0.3s, color 0.3s;
+}
+
+.fullscreen-close:hover {
+    background: var(--accent);
+    color: white;
+}
+
+/* Help modal */
+.help-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 99998;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.help-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.help-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.help-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-primary);
+}
+
+.help-close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.help-close:hover {
+    background: var(--bg-darker);
+    color: var(--text-primary);
+}
+
+.help-body {
+    padding: 20px;
+}
+
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.shortcut-item:last-child {
+    border-bottom: none;
+}
+
+.shortcut-key {
+    background: var(--bg-darker);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: monospace;
+    font-size: 14px;
+    color: var(--text-primary);
+    min-width: 100px;
+    text-align: center;
+}
+
+.shortcut-desc {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Image navigation controls */
+.image-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+}
+
+.nav-btn {
+    background: var(--button-bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s;
+    color: var(--text-primary);
+}
+
+.nav-btn:hover {
+    background: var(--button-hover);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.image-counter {
+    color: var(--text-secondary);
+    font-size: 14px;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Action buttons */
+.actions {
+    display: flex;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+}
+
+.action-btn {
+    background: var(--button-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.action-btn:hover {
+    background: var(--button-hover);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+kbd {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text-secondary);
+}

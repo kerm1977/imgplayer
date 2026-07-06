@@ -1,0 +1,50 @@
+{
+  "name": "imageviewer-electron",
+  "version": "1.0.0",
+  "description": "Visor de imágenes estilo ARIA",
+  "main": "main.js",
+  "homepage": "https://github.com/kerm1977/imageviewer",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:deb": "electron-builder --linux deb",
+    "build:appimage": "electron-builder --linux AppImage",
+    "build:rpm": "electron-builder --linux rpm"
+  },
+  "keywords": [
+    "image",
+    "viewer",
+    "electron"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "sharp": "^0.35.3"
+  },
+  "build": {
+    "appId": "com.imageviewer.app",
+    "productName": "ImageViewer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**"
+    ],
+    "linux": {
+      "target": [
+        "deb",
+        "AppImage",
+        "rpm"
+      ],
+      "category": "Graphics",
+      "maintainer": "ImageViewer Team",
+      "icon": "build/icons"
+    }
+  }
+}

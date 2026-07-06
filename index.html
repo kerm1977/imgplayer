@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<!--
+============================================================================
+IMAGE VIEWER ELECTRON - MAIN HTML FILE
+============================================================================
+This is the main HTML file for the image viewer application.
+
+Layout Structure:
+- Drag strip at top (window title and controls for frameless window)
+- Search bar (for filtering images)
+- Main container with image viewer area
+- Action buttons for opening images and help
+
+Theme: Dark gradient background with orange accent (#ff6b35)
+Language: Spanish (default, but supports 9 languages via translations.js)
+
+Key Features:
+- Frameless window with custom title bar
+- Image viewing with zoom and pan
+- Image transformation controls (rotate, flip, scale)
+- Color correction controls
+- Image format conversion
+- Batch file operations
+- Multilingual support (9 languages)
+============================================================================
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARIA Image</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ============================================================================
+         DRAG STRIP - Custom Title Bar
+         ============================================================================
+         This thin strip at the top serves as the window title bar for the frameless window.
+         It has -webkit-app-region: drag CSS property to allow window dragging.
+         Contains window title on the left and window controls (minimize, maximize, close) on the right.
+    -->
+    <div class="drag-strip">
+        <div class="window-title">
+            <!-- Image icon SVG -->
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="#ff6b35" style="vertical-align:middle;margin-right:8px"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            ARIA - IMAGE
+        </div>
+        <div class="window-controls">
+            <!-- Theme toggle button -->
+            <button class="theme-toggle" id="themeToggle" title="Cambiar tema">
+                <svg class="theme-icon-sun" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+                <svg class="theme-icon-moon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="display: none;"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+            </button>
+            <!-- Window control buttons - these send IPC messages to main process -->
+            <button class="win-btn win-minimize" id="winMinimize" title="Minimizar">&#x2212;</button>
+            <button class="win-btn win-maximize" id="winMaximize" title="Maximizar">&#x25A1;</button>
+            <button class="win-btn win-close" id="winClose" title="Cerrar">&#x2715;</button>
+        </div>
+    </div>
+
+    <!-- ============================================================================
+         SEARCH BAR
+         ============================================================================
+         Search input field for filtering images.
+         Also displays the help button (?) which opens the help modal with keyboard shortcuts.
+    -->
+    <div class="search-bar-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, tamaño, formato, aspecto...">
+        <div class="search-info" id="searchInfo"></div>
+    </div>
+
+    <!-- ============================================================================
+         MAIN CONTAINER
+         ============================================================================
+         Main application area with image viewer and controls.
+    -->
+    <div class="main-container">
+        <div class="main-content">
+            <!-- Image viewer area -->
+            <div class="image-viewer" id="imageViewer">
+                <div class="no-image">No hay imagen cargada</div>
+            </div>
+
+            <!-- Image info panel -->
+            <div class="image-info-panel" id="imageInfoPanel">
+                <div class="info-header">Información de Imagen</div>
+                <div class="info-content" id="infoContent">
+                    <div class="info-item">
+                        <span class="info-label">Resolución:</span>
+                        <span class="info-value" id="infoResolution">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Aspecto:</span>
+                        <span class="info-value" id="infoAspect">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Formato:</span>
+                        <span class="info-value" id="infoFormat">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Tamaño:</span>
+                        <span class="info-value" id="infoSize">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Ruta:</span>
+                        <span class="info-value" id="infoPath">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image navigation controls -->
+    <div class="image-navigation" id="imageNavigation" style="display: none;">
+        <button class="nav-btn" id="prevImageBtn" title="Imagen anterior (a)">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <span class="image-counter" id="imageCounter">1 / 1</span>
+        <button class="nav-btn" id="nextImageBtn" title="Imagen siguiente (s)">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="actions">
+        <button class="action-btn" id="openImagesBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="pointer-events:none;vertical-align:middle;margin-right:6px"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            Abrir Imágenes <kbd>Shift+A</kbd>
+        </button>
+        <button class="action-btn" id="helpBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="pointer-events:none;vertical-align:middle;margin-right:6px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13.5 13.5 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+            Ayuda <kbd>?</kbd>
+        </button>
+    </div>
+
+    <!-- Fullscreen image modal -->
+    <div class="fullscreen-modal" id="fullscreenModal" style="display: none;">
+        <div class="fullscreen-image-container" id="fullscreenImageContainer">
+            <img id="fullscreenImage" src="" alt="Fullscreen image">
+        </div>
+        <div class="fullscreen-close" id="fullscreenClose" title="Cerrar (Esc)">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </div>
+    </div>
+
+    <!-- Help modal -->
+    <div class="help-modal" id="helpModal" style="display: none;">
+        <div class="help-content">
+            <div class="help-header">
+                <h2>Atajos de Teclado</h2>
+                <button class="help-close" id="helpClose" title="Cerrar">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="help-body">
+                <div class="shortcut-item">
+                    <span class="shortcut-key">a</span>
+                    <span class="shortcut-desc">Izquierda</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">s</span>
+                    <span class="shortcut-desc">Derecha</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">q</span>
+                    <span class="shortcut-desc">Rotar izquierda</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">w</span>
+                    <span class="shortcut-desc">Rotar derecha</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">r</span>
+                    <span class="shortcut-desc">Reflejar</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Shift+A</span>
+                    <span class="shortcut-desc">Abrir imágenes</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Espacio</span>
+                    <span class="shortcut-desc">Restablecer tamaño</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Scroll</span>
+                    <span class="shortcut-desc">Zoom</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Click + Arrastrar</span>
+                    <span class="shortcut-desc">Mover imagen</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Doble click</span>
+                    <span class="shortcut-desc">Pantalla completa</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Escape</span>
+                    <span class="shortcut-desc">Cerrar fullscreen</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================
+         JAVASCRIPT FILES
+         ============================================================================
+         Load JavaScript files for application functionality.
+         - translations.js: Multilingual support (9 languages)
+         - renderer.js: Main application logic (UI, image viewing, etc.)
+    -->
+    <script src="translations.js"></script>
+    <script src="renderer.js"></script>
+</body>
+</html>
